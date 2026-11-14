@@ -236,7 +236,15 @@ export default function MapCanvas({
               </Group>
             );
           })}
-          {annotations.map((element) => (
+          {[
+            ...annotations,
+            ...(festival.amenities ?? []).map((item) => ({
+              ...item,
+              kind: item.type,
+              color: "#79a5be",
+              shape: "rectangle" as const,
+            })),
+          ].map((element) => (
             <Group
               key={element.id}
               {...point(element.position)}

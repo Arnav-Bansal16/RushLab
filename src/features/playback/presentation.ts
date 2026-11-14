@@ -33,10 +33,10 @@ export function attendeeDescription(
         ? (festival.stages.find(
             (stage) => stage.id === genericTarget.destinationId,
           )?.name ?? genericTarget.destinationId)
-        : (festival.amenities ?? []).find(
+        : ((festival.amenities ?? []).find(
             (amenity) => amenity.id === genericTarget.destinationId,
-          )?.name ?? genericTarget.destinationId
-    : attendee.targetVendorId === null
+          )?.name ?? genericTarget.destinationId)
+    : attendee.target !== undefined || attendee.targetVendorId === null
       ? "No destination"
       : (festival.vendors.find(
           (vendor) => vendor.id === attendee.targetVendorId,

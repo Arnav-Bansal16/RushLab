@@ -5,6 +5,7 @@ import { useCallback, useRef, useState } from "react";
 import type { Point } from "@/domain";
 import { demoFestival } from "@/fixtures/demoFestival";
 import { downloadLayoutImage } from "./exportImage";
+import BehaviorAttributes from "./BehaviorAttributes";
 import ComponentForm from "./ComponentForm";
 import PlaybackWorkspace from "../playback/PlaybackWorkspace";
 import {
@@ -469,6 +470,19 @@ export default function FestivalEditor() {
                   </select>
                 </>
               )}
+              <BehaviorAttributes
+                key={JSON.stringify([
+                  selected.id,
+                  vendor?.averagePrice,
+                  vendor?.serviceTimeSeconds,
+                  [...layout.stages, ...(layout.amenities ?? [])].find(
+                    (item) => item.id === selected.id,
+                  )?.dwellDurationOverrideSeconds,
+                ])}
+                layout={layout}
+                id={selected.id}
+                onChange={commit}
+              />
               {vendor && (
                 <>
                   <label htmlFor="servers">Service counters</label>

@@ -303,3 +303,20 @@
   border-radius: 4px;
   padding: 2px 5px;
 }
+
+.advanced-run-settings fieldset {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+.advanced-run-settings fieldset > p {
+  grid-column: 1 / -1;
+}
+.advanced-run-settings input {
+  max-width: 100%;
+  min-width: 0;
+}
+[aria-invalid="true"] {
+  outline: 2px solid #a32929;
+}

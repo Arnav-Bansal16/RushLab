@@ -1,4 +1,7 @@
 "use client";
+import BehaviorControls, {
+  readBehavior,
+} from "../simulation-settings/BehaviorControls";
 import { useState } from "react";
 import type { SimulationSettings } from "../../domain";
 import type { LayoutDocument } from "../editor/layout";
@@ -81,8 +84,8 @@ export default function PlaybackWorkspace({
         Modeled assumptions: this version models vendor preferences, queue
         patience, purchases, and stockouts. Prices and personal budgets do not
         yet influence choices. Multi-stop visits, roaming, and stage or amenity
-        dwell are planned for a future update.
-        Results are modeled estimates, not forecasts.
+        dwell are planned for a future update. Results are modeled estimates,
+        not forecasts.
       </p>
       <form
         className="run-settings"
@@ -102,6 +105,7 @@ export default function PlaybackWorkspace({
           const duration = String(data.get("durationMinutes") ?? "");
           settings.durationSeconds =
             duration.trim() === "" ? NaN : Number(duration) * 60;
+          settings.behavior = readBehavior(data);
           startRun(layout, settings);
         }}
       >
@@ -135,6 +139,7 @@ export default function PlaybackWorkspace({
         </button>
         <details className="advanced-run-settings">
           <summary>Advanced settings</summary>
+          <BehaviorControls />
           <div>
             {advancedFields.map((field) => (
               <div key={field.key}>
