@@ -1,0 +1,3 @@
+interface:
+  display_name: "RushLab Open-Source Evaluation"
+  short_description: "Verify reuse, licenses, and integration risk"

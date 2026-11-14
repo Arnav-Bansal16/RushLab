@@ -1,0 +1,3 @@
+interface:
+  display_name: "RushLab Simulation Verification"
+  short_description: "Check determinism, queues, metrics, and comparisons"
