@@ -184,6 +184,11 @@ for every recommendation.
 - Queue-abandon events do not distinguish timeout from stockout removal.
 - Results are deterministic modeled estimates, not forecasts.
 
+The expanded P0 addresses price-sensitive choice and general destinations only
+after ANA-01 through CON-02, SIM-03, UI-04, and ANA-03. ANA-01 must remain a
+vendor-ledger reduction and must not absorb attendee intent, destination
+planning, advanced settings, or destination metrics.
+
 Changing any of these semantics requires a separately reviewed simulation or
 contract task; do not hide such changes inside ANA-01.
 

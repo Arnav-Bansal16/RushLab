@@ -37,6 +37,12 @@ git config user.email "you@example.com"
 - Developer B: `src/simulation/**`, `src/analytics/**`, engine tests/benchmarks.
 - Joint, one PR at a time: `src/domain/**`, `src/fixtures/**`, package/config files, architecture decisions.
 
+The expanded P0 has a second shared checkpoint, CON-02. Finish and merge the
+current SIM-02/UI-02/ANA-01 vertical slice first. Then both developers review
+and merge CON-02 before starting behavior implementation. Do not independently
+extend settings, attendee profiles, events, frames, amenities, or result
+metrics on a feature branch.
+
 ## Daily branch loop
 
 Developer A example:
@@ -69,6 +75,25 @@ If the remote branch is no longer needed:
 ```bash
 git push origin --delete codex/ui-01-map-editor
 ```
+
+## Expanded P0 branch sequence
+
+Keep the new work to four reviewable branches rather than one cross-layer PR:
+
+1. `codex/con-02-behavior-contract` — joint contract, fixture, and planning
+   update; no engine or UI implementation.
+2. `codex/sim-03-attendee-behavior` — Developer B owns deterministic intent,
+   price elasticity, bounded roaming, destination visits, and simulation tests.
+3. `codex/ui-04-behavior-controls` — Developer A owns vendor price editing,
+   advanced settings, and playback presentation after CON-02 merges.
+4. `codex/ana-03-destination-metrics` — Developer B starts only after SIM-03
+   fixes the destination event ledger.
+
+SIM-03 and UI-04 may run in parallel after CON-02 because they own disjoint
+files. ANA-03 must not run in parallel with SIM-03 event-contract changes.
+Choose one integrator for final app composition and INT-01 compatibility rules.
+Every PR rebases on current `main`, runs targeted tests, then runs
+`npm run verify`; no branch should contain opportunistic shared-contract edits.
 
 ## Updating a branch and resolving conflicts
 

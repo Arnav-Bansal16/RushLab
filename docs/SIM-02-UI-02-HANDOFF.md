@@ -112,6 +112,15 @@ If either task needs a new field or event, stop and open a small contract PR
 first. Update the shared fixture and contract tests, obtain joint review, merge
 that PR, and rebase both task branches before continuing.
 
+### Follow-on expanded P0
+
+This handoff remains the source of truth for the original vendor playback
+slice. Do not retrofit price elasticity, generic destinations, roaming, or
+amenity dwelling into SIM-02 or UI-02. After this slice and ANA-01 merge,
+CON-02 owns the shared contract update; SIM-03 owns behavior; UI-04 owns price
+and advanced controls plus the corresponding playback presentation; ANA-03
+owns destination metrics. See `docs/HANDOFF.md` and `docs/TASKS.md`.
+
 ## Branch and folder ownership
 
 - SIM-02 owns `src/simulation/queue/**`, `src/simulation/events/**`, necessary
