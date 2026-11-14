@@ -77,6 +77,12 @@ type RecommendPlacements = (
 
 The concrete exports will be added in task SIM-01 without changing these signatures.
 
+CP1 freezes these v1 contracts. `Point` and `Size` are world-space meters;
+timestamps and durations are seconds from simulation start. The reviewed
+`demoFestival` and `demoSimulationResult` fixtures are the shared integration
+examples for UI, simulation, and analytics work. They are JSON documents and
+must remain valid against the public contracts.
+
 ## Engine model
 
 P0 uses fixed time steps (start at 0.5 seconds) and records playback at a lower rate (start at 1 frame/second). An attendee utility can combine category preference, vendor popularity, price penalty, travel-time penalty, predicted wait penalty, and a small seeded exploration term.

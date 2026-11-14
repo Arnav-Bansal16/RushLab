@@ -1,9 +1,12 @@
 export type Id = string;
 
+/** World-space coordinates in meters from the festival bounds origin. */
 export interface Point {
   x: number;
   y: number;
 }
+
+/** World-space dimensions in meters. */
 export interface Size {
   width: number;
   height: number;

@@ -16,10 +16,17 @@
 
 - All public domain objects are JSON-serializable; no class instances, functions, `Date`, `Map`, or circular references.
 - IDs are stable strings and arrays use deterministic ID ordering where order affects behavior.
-- Positions and sizes are meters. Renderer transform is presentation-only.
+- Festival entity IDs are unique across the document. Attendee and vendor IDs are unique within each result collection or frame where they identify an entity.
+- `Point` positions and `Size` dimensions are world-space meters. The origin is the festival bounds origin, coordinates are finite and within `boundsMeters`, and the renderer transform is presentation-only.
 - Simulation timestamps are seconds from run start.
 - Currency is display units for P0; if real payments/reporting are added, migrate to integer minor units.
 - `schemaVersion: 1` is required on festival and result documents.
+
+## Shared fixtures
+
+- `demoFestival` is the reviewed baseline layout.
+- `demoSimulationResult` is coherent illustrative modeled output for that layout; it is not a forecast or benchmark.
+- Every shared fixture must satisfy its public TypeScript contract, use unique IDs in the scopes above, and round-trip through `JSON.stringify`/`JSON.parse` without data loss.
 
 ## Fair comparison guard
 
