@@ -1,67 +1,107 @@
-# Setup status and developer handoff
+# Current implementation and expanded P0 handoff
 
-## Prepared locally
+## Current checkpoint
 
-- Minimal Next.js/React/TypeScript scaffold with Tailwind, Konva, Recharts, pure-rand, Vitest, linting, and a lockfile.
-- Shared v1 domain and simulation contracts plus one festival fixture.
-- Product, research, architecture, reuse, tasks, integration, testing, collaboration, deployment, and decision documentation.
-- Four project Codex agent definitions:
-  - `.codex/agents/simulation-engineer.toml`
-  - `.codex/agents/frontend-engineer.toml`
-  - `.codex/agents/integration-reviewer.toml`
-  - `.codex/agents/open-source-researcher.toml`
-- Three validated project skills:
-  - `.agents/skills/rushlab-open-source-evaluation/SKILL.md`
-  - `.agents/skills/rushlab-simulation-verification/SKILL.md`
-  - `.agents/skills/rushlab-integration-review/SKILL.md`
+- UI-01, SIM-01, and SIM-02 provide the editor, deterministic profiles and
+  movement, vendor queues/service/purchases, inventory, events, and frames.
+- UI-02 exists separately and still needs normal review/integration into
+  `main`.
+- ANA-01 is implemented locally on `codex/ana-01-event-metrics` at commit
+  `783fd45`; it has not been pushed or merged. It remains intentionally limited
+  to canonical vendor metrics and totals from the SIM-02 event ledger.
+- The expanded P0 planning edits are documentation-only. No domain contract,
+  fixture, simulation behavior, UI behavior, dependency, commit, or push is
+  included in this planning change.
 
-Installed Codex CLI `0.165.0-alpha.1.2` recognizes the current custom-agent/config format from the 2026-11-13 official manual. Skills passed the bundled `quick_validate.py` validator.
+The present engine sends an attendee to one available vendor whenever a vendor
+exists. Budget, price sensitivity, exploration, and stage attraction are
+present in data but do not yet produce price elasticity, stage-first behavior,
+or roaming. Restroom, seating, first aid, parking, exits, and custom elements
+are currently editor-only.
 
-## Verification results
+## Approved expanded P0 shape
 
-```text
-npm run lint       pass
-npm run typecheck  pass
-npm test           1 file / 2 tests pass
-npm run build      pass (Next.js 16.4.6, webpack, static / route)
-npm audit --omit=dev  0 vulnerabilities
-```
+Keep the addition compact:
 
-Full `npm audit` reports seven moderate, development-only `minimatch` findings through the current Next.js lint toolchain. Do not run a blind audit fix during the hackathon; monitor/upstream-update after compatibility is confirmed.
+1. One joint contract task: CON-02.
+2. One simulation task: SIM-03.
+3. One frontend task: UI-04.
+4. One destination-analytics task: ANA-03.
 
-Third-party verification:
+P0 supports stage-first, vendor-first, explorer, and amenity-first intents;
+editable vendor price; affordable price-sensitive vendor choice; bounded
+roaming; deterministic stage/amenity dwell; and a small advanced-settings
+panel. Each attendee has at most three destinations. Vendors remain the only
+queued/service destinations. Nonvendor amenities do not model congestion,
+staffing, medical incidents, or service queues.
 
-```text
-jphinspace/festival: 620/620 tests passed; HTTP/module launch passed
-anesask/discrete-sim: 797/797 tests, typecheck, and build passed
-```
+The exact default weights, price formula, destination eligibility, and scope
+limits are in `docs/ARCHITECTURE.md`. Task ownership and acceptance criteria are
+in `docs/TASKS.md`.
 
-The managed sandbox blocked Turbopack's internal CSS worker from binding a port, so the reproducible build command uses `next build --webpack`. This is an environment/tooling workaround, not a product-feature failure.
+## Required implementation order
 
-## Human approval or external setup still required
+1. Merge or otherwise finish the current SIM-02/UI-02/ANA-01 vertical slice and
+   run `npm run verify`.
+2. Implement CON-02 alone. Jointly review changes to `src/domain/**`,
+   `src/fixtures/**`, and the shared fixtures; merge it before dependent work.
+3. Rebase from the merged CON-02 contract.
+4. Run SIM-03 and UI-04 in parallel because they own disjoint folders.
+5. Start ANA-03 only after SIM-03 fixes the destination event ledger.
+6. Integrate UI-03 and INT-01 with the new metrics and fair-comparison checks.
+7. Run the full CP3B demo flow, `npm run verify`, and the 300-attendee playback
+   check before feature freeze.
 
-1. Approve the architecture and begin product implementation.
-2. Create/select the GitHub remote, choose repository visibility/license, push this initial state, and invite the second developer.
-3. Agree which human is Developer A and Developer B.
-4. Review and merge CP1 contract freeze before parallel feature branches.
-5. Connect Vercel and approve the first preview/production deployment.
-6. Approve any later Supabase project, OpenAI API use, paid resource, custom domain, new production dependency, or third-party code port.
-7. Decide whether the development-only audit findings are acceptable for the weekend or should wait for upstream package updates.
+Do not add behavior changes to ANA-01, do not let UI calculate choices or
+canonical metrics, and do not let SIM-03 independently invent a private event
+or settings interface.
 
-No remote, account, deployment, database, API key, or paid resource was created.
+## Developer A handoff
 
-## Exact next prompt — Developer A
+After CON-02 merges, implement UI-04 under `src/features/**` and narrow app
+composition:
 
-```text
-Implement task UI-01 from docs/TASKS.md on branch codex/ui-01-map-editor. Read AGENTS.md, docs/ARCHITECTURE.md, docs/INTEGRATION.md, and the frozen types in src/domain first. Own only src/app, src/components, and src/features/editor. Build a client-side Konva map for demoFestival with meter-to-pixel conversion, responsive stages/entrance/path/vendor layers, bounded vendor dragging, and one accessible vendor attribute form. Do not add state libraries, simulation logic, or change shared contracts. Add focused transform/bounds tests and run npm run verify. Stop and report the smallest proposed change if a shared contract blocks you.
-```
+- add `averagePrice` to vendor creation and editing;
+- expose only the approved advanced settings: intent/destination weights,
+  maximum stops, dwell/roam ranges, queue-tolerance multiplier, and price
+  elasticity;
+- validate finite non-negative values and the all-zero eligible-weight case;
+- snapshot festival and settings before each run;
+- display behavior assumptions as modeled inputs; and
+- render generic engine-supplied destinations/dwelling without calculating
+  attendee choices, visits, revenue, or other canonical metrics.
 
-Recommended Codex agent: `frontend_engineer`. Use GPT-6.1 Sol medium reasoning for the first integration; a faster model is fine for later polish.
+## Developer B handoff
 
-## Exact next prompt — Developer B
+After CON-02 merges, implement SIM-03 under `src/simulation/**`:
 
-```text
-Implement task SIM-01 from docs/TASKS.md on branch codex/sim-01-seeded-engine. Read AGENTS.md, docs/ARCHITECTURE.md, docs/TESTING.md, and src/domain first. Own only src/simulation and adjacent tests. Add a pure-rand wrapper with stable named streams, deterministic attendee profile generation, a fixed-step engine skeleton, simple valid waypoint movement, and the concrete runSimulation export matching the frozen RunSimulation type. Never call Math.random or import React/DOM code. Prove same-seed equality, different-seed inequality, named-stream independence, monotonic time, and in-bounds positions. Run npm run verify. Stop and report the smallest proposed change if a shared contract blocks you.
-```
+- assign stable intent independently from movement draws;
+- build at most three valid stops;
+- apply the documented affordability and price formula;
+- select stages by attraction and supported amenities by configured weight;
+- generate one or two seeded in-bounds waypoints for explorers;
+- emit the approved destination/dwell events and frame targets;
+- preserve SIM-02 queue, inventory, purchase, abandonment, and ordering rules;
+  and
+- keep every output deterministic, immutable, and JSON-serializable.
 
-Recommended Codex agent: `simulation_engineer` plus the `rushlab-simulation-verification` skill. Use GPT-6.1 Sol high reasoning for invariants.
+After the SIM-03 ledger is stable, implement ANA-03 under
+`src/analytics/destinations/**`. Derive visits and dwell only from ordered
+events, include zero-demand destinations in stable ID order, and do not
+duplicate ANA-01 vendor formulas.
+
+## Demo acceptance
+
+The expanded P0 is ready when a reviewer can:
+
+1. load a festival containing a stage, two vendors, seating, restroom, and
+   first aid;
+2. edit a vendor price and a small set of behavior assumptions;
+3. run 200–300 deterministic attendees and visibly observe the supported intent
+   mix;
+4. see stage/vendor/roam/amenity movement plus vendor queue/service behavior;
+5. rerun an alternative with the same profiles, intent assignments, seed, and
+   behavior settings;
+6. inspect event-reconciled vendor and destination results; and
+7. understand that prices, visits, revenue, and recommendations are modeled
+   estimates rather than forecasts.
