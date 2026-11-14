@@ -15,6 +15,7 @@ import { createNamedRandomStreams } from "./random";
 
 interface AttendeeState extends AttendeeFrameState {
   entranceId: Id;
+  spawnTimeSeconds: number;
   route: Point[];
   routeIndex: number;
   destinationIndex: number;
@@ -132,6 +133,7 @@ export const runSimulation: RunSimulation = (festival, settings) => {
       attendees.set(profile.id, {
         id: profile.id,
         entranceId: entrance.id,
+        spawnTimeSeconds: timeSeconds,
         position: clampToBounds(entrance.position, festival),
         status: "entering",
         targetVendorId: vendor?.id ?? null,
@@ -152,7 +154,12 @@ export const runSimulation: RunSimulation = (festival, settings) => {
       for (const attendee of [...attendees.values()].sort((left, right) =>
         left.id.localeCompare(right.id),
       )) {
-        if (attendee.status === "exited") continue;
+        if (
+          attendee.status === "exited" ||
+          attendee.spawnTimeSeconds === timeSeconds
+        ) {
+          continue;
+        }
         const target = attendee.route[attendee.routeIndex];
         if (!target) continue;
         const movement = moveToward(

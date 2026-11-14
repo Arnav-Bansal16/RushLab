@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { SimulationSettings } from "../domain";
+import type { SimulationEvent, SimulationSettings } from "../domain";
 import { demoFestival } from "../fixtures/demoFestival";
 import {
   createAttendeeProfiles,
@@ -78,4 +78,69 @@ describe("runSimulation", () => {
       }
     }
   });
+
+  it("keeps newly spawned attendees at their entrance for the spawn tick", () => {
+    const result = runSimulation(demoFestival, settings);
+    let checkedSpawnFrames = 0;
+
+    for (const event of result.events) {
+      if (event.type !== "spawn") continue;
+      const frame = result.frames.find(
+        ({ timeSeconds }) => timeSeconds === event.timeSeconds,
+      );
+      const attendee = frame?.attendees.find(
+        ({ id }) => id === event.attendeeId,
+      );
+      if (!attendee) continue;
+      const entrance = demoFestival.entrances.find(
+        ({ id }) => id === event.entranceId,
+      );
+
+      expect(attendee.position).toEqual(entrance?.position);
+      expect(attendee.status).toBe("entering");
+      checkedSpawnFrames += 1;
+    }
+
+    expect(checkedSpawnFrames).toBeGreaterThan(0);
+  });
+
+  it.each([0, 1, 42, 20261114, -17])(
+    "preserves event and frame invariants for seed %i",
+    (seed) => {
+      const result = runSimulation(demoFestival, {
+        ...settings,
+        seed,
+        attendeeCount: 40,
+      });
+      const spawnEvents = result.events.filter(
+        (event): event is Extract<SimulationEvent, { type: "spawn" }> =>
+          event.type === "spawn",
+      );
+      const exitEvents = result.events.filter(({ type }) => type === "exit");
+
+      expect(spawnEvents).toHaveLength(40);
+      expect(
+        new Set(spawnEvents.map(({ attendeeId }) => attendeeId)).size,
+      ).toBe(40);
+      expect(result.totals.exitedAttendees).toBe(exitEvents.length);
+      expect(
+        result.events.every(
+          (event, index) =>
+            index === 0 ||
+            event.timeSeconds >= result.events[index - 1]!.timeSeconds,
+        ),
+      ).toBe(true);
+      expect(
+        result.frames
+          .flatMap(({ attendees }) => attendees)
+          .every(
+            ({ position }) =>
+              position.x >= 0 &&
+              position.x <= demoFestival.boundsMeters.width &&
+              position.y >= 0 &&
+              position.y <= demoFestival.boundsMeters.height,
+          ),
+      ).toBe(true);
+    },
+  );
 });
