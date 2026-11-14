@@ -1,6 +1,7 @@
 import type {
   AttendeeFrameState,
   AttendeeProfile,
+  ExitReason,
   Festival,
   Id,
   Point,
@@ -12,8 +13,18 @@ import type {
 } from "../domain";
 import { resolveBehaviorSettings } from "../domain";
 import { deriveSimulationMetrics } from "../analytics/metrics";
+import {
+  assignStableIntent,
+  createAttendeeChoiceStream,
+  createTravelRoute,
+  generateRoamingWaypoints,
+  resolveDestinations,
+  sampleDwellDurationSeconds,
+  selectDestination,
+  type ResolvedDestination,
+} from "./behavior";
 import { appendOrderedEvents } from "./events/order";
-import { clampToBounds, createRoute, moveToward } from "./movement";
+import { clampToBounds, moveToward } from "./movement";
 import { createAttendeeProfiles } from "./profiles";
 import {
   admitRequest,
@@ -26,19 +37,35 @@ import {
   startNextRequest,
   type VendorQueueState,
 } from "./queue/vendorQueue";
-import {
-  createNamedRandomStreams,
-  type NamedRandomStreams,
-  type RandomStream,
-} from "./random";
+import { createNamedRandomStreams, type RandomStream } from "./random";
+
+type ResolvedSettings = SimulationSettings & {
+  behavior: ReturnType<typeof resolveBehaviorSettings>;
+};
+
+interface ActiveVisit {
+  destination: ResolvedDestination;
+  startedAtSeconds: number;
+  visitOrder: number;
+  dwellCompletesAtSeconds?: number;
+}
 
 interface AttendeeState extends AttendeeFrameState {
   entranceId: Id;
   spawnTimeSeconds: number;
+  profile: AttendeeProfile;
+  choice: RandomStream;
   route: Point[];
   routeIndex: number;
-  destinationIndex: number;
+  roamingWaypointCount: number;
   requestOpen: boolean;
+  activeVisit?: ActiveVisit;
+  visitsByDestination: Map<Id, number>;
+  vendorStops: number;
+  stageStops: number;
+  amenityStops: number;
+  lastDestinationId: Id | null;
+  exitReason?: ExitReason;
 }
 
 interface VendorArrival {
@@ -71,26 +98,6 @@ function validateSettings(settings: SimulationSettings): void {
   }
 }
 
-function chooseVendor(
-  profile: AttendeeProfile,
-  vendors: Vendor[],
-  choice: NamedRandomStreams["choice"],
-): Vendor | undefined {
-  const available = vendors.filter(
-    (vendor) => vendor.inventory === null || vendor.inventory > 0,
-  );
-  if (available.length === 0) return undefined;
-  return available[
-    choice.weightedIndex(
-      available.map(
-        (vendor) =>
-          profile.vendorCategoryWeights[vendor.category] *
-          Math.max(0, vendor.popularity),
-      ),
-    )
-  ];
-}
-
 export function sampleServiceDurationSeconds(
   baseSeconds: number,
   stepSeconds: number,
@@ -104,24 +111,220 @@ export function sampleServiceDurationSeconds(
   );
 }
 
-function beginLeaving(attendee: AttendeeState): void {
+function finishVisit(
+  attendee: AttendeeState,
+  timeSeconds: number,
+  truncated: boolean,
+  stepEvents: SimulationEvent[],
+): void {
+  const visit = attendee.activeVisit;
+  if (!visit) return;
+  stepEvents.push({
+    type: "destination_visit_end",
+    timeSeconds,
+    attendeeId: attendee.id,
+    destinationId: visit.destination.id,
+    destinationType: visit.destination.type,
+    visitOrder: visit.visitOrder,
+    durationSeconds: Math.max(0, timeSeconds - visit.startedAtSeconds),
+    truncated,
+  });
+  if (!truncated) attendee.completedStops = (attendee.completedStops ?? 0) + 1;
+  attendee.activeVisit = undefined;
+}
+
+function beginExit(
+  attendee: AttendeeState,
+  reason: ExitReason,
+  festival: Festival,
+  entrancePosition: Point,
+  movement: RandomStream,
+): void {
   attendee.status = "leaving";
   attendee.targetVendorId = null;
-  attendee.routeIndex = attendee.destinationIndex + 1;
+  attendee.target = null;
+  attendee.exitReason = reason;
+  attendee.route = createTravelRoute(
+    festival,
+    attendee.position,
+    entrancePosition,
+    movement,
+  );
+  attendee.routeIndex = 0;
+  attendee.roamingWaypointCount = 0;
 }
 
 function exitAttendee(
   attendee: AttendeeState,
   entrancePosition: Point,
   timeSeconds: number,
+  reason: ExitReason,
   stepEvents: SimulationEvent[],
 ): void {
   if (attendee.status === "exited") return;
   attendee.position = { ...entrancePosition };
   attendee.status = "exited";
   attendee.targetVendorId = null;
+  attendee.target = null;
   attendee.requestOpen = false;
-  stepEvents.push({ type: "exit", timeSeconds, attendeeId: attendee.id });
+  stepEvents.push({
+    type: "exit",
+    timeSeconds,
+    attendeeId: attendee.id,
+    reason,
+    completedStops: attendee.completedStops ?? 0,
+    remainingBudget: attendee.remainingBudget ?? attendee.profile.initialBudget,
+  });
+}
+
+function afterCompletedStop(
+  attendee: AttendeeState,
+  festival: Festival,
+  settings: ResolvedSettings,
+  entrancePosition: Point,
+  movement: RandomStream,
+): void {
+  if ((attendee.completedStops ?? 0) >= settings.behavior.maximumItineraryStops) {
+    beginExit(attendee, "itinerary_limit", festival, entrancePosition, movement);
+    return;
+  }
+  const exitProbability =
+    settings.behavior.deterministicExitProbabilityAfterStop *
+    attendee.profile.exitTendency;
+  if (attendee.choice.float() < exitProbability) {
+    beginExit(
+      attendee,
+      "seeded_exit_decision",
+      festival,
+      entrancePosition,
+      movement,
+    );
+    return;
+  }
+  attendee.status = "choosing";
+  attendee.targetVendorId = null;
+  attendee.target = null;
+  attendee.route = [];
+  attendee.routeIndex = 0;
+  attendee.roamingWaypointCount = 0;
+}
+
+function startVisit(
+  attendee: AttendeeState,
+  destination: ResolvedDestination,
+  timeSeconds: number,
+  settings: SimulationSettings,
+  stepEvents: SimulationEvent[],
+): void {
+  const previousVisits = attendee.visitsByDestination.get(destination.id) ?? 0;
+  attendee.visitsByDestination.set(destination.id, previousVisits + 1);
+  attendee.lastDestinationId = destination.id;
+  if (destination.type === "vendor") attendee.vendorStops += 1;
+  else if (destination.type === "stage") attendee.stageStops += 1;
+  else attendee.amenityStops += 1;
+  const visitOrder = (attendee.completedStops ?? 0) + 1;
+  attendee.activeVisit = {
+    destination,
+    startedAtSeconds: timeSeconds,
+    visitOrder,
+  };
+  stepEvents.push({
+    type: "destination_visit_start",
+    timeSeconds,
+    attendeeId: attendee.id,
+    destinationId: destination.id,
+    destinationType: destination.type,
+    visitOrder,
+    isRepeatVisit: previousVisits > 0,
+  });
+
+  if (destination.type !== "vendor") {
+    const duration = sampleDwellDurationSeconds(
+      destination.dwellDurationSeconds!,
+      attendee.profile.dwellDurationTendency,
+      settings.stepSeconds,
+      attendee.choice,
+    );
+    attendee.activeVisit.dwellCompletesAtSeconds = timeSeconds + duration;
+    attendee.status = "dwelling";
+  }
+}
+
+function planDestination(
+  attendee: AttendeeState,
+  timeSeconds: number,
+  festival: Festival,
+  settings: ResolvedSettings,
+  destinations: readonly ResolvedDestination[],
+  queues: Map<Id, VendorQueueState>,
+  entrancePosition: Point,
+  movement: RandomStream,
+): void {
+  const inventory = new Map(
+    [...queues].map(([id, queue]) => [id, queue.inventoryRemaining]),
+  );
+  const walkingSpeed =
+    settings.walkingSpeedMetersPerSecond * attendee.profile.walkingSpeedMultiplier;
+  const selection = selectDestination(
+    destinations,
+    attendee.profile,
+    settings.behavior,
+    {
+      completedStops: attendee.completedStops ?? 0,
+      vendorStops: attendee.vendorStops,
+      stageStops: attendee.stageStops,
+      amenityStops: attendee.amenityStops,
+      lastDestinationId: attendee.lastDestinationId,
+      visitsByDestination: attendee.visitsByDestination,
+      remainingBudget: attendee.remainingBudget ?? attendee.profile.initialBudget,
+      position: attendee.position,
+      timeSeconds,
+      visitDeadlineSeconds: Math.min(
+        settings.durationSeconds,
+        attendee.spawnTimeSeconds + attendee.profile.visitDurationToleranceSeconds,
+      ),
+    },
+    walkingSpeed,
+    inventory,
+    attendee.choice,
+  );
+  if (!selection.destination) {
+    beginExit(
+      attendee,
+      selection.reason ?? "no_eligible_destination",
+      festival,
+      entrancePosition,
+      movement,
+    );
+    return;
+  }
+
+  const destination = selection.destination;
+  const roamingWaypoints =
+    attendee.profile.intent === "explorer" && (attendee.completedStops ?? 0) === 0
+      ? generateRoamingWaypoints(
+          festival,
+          settings.behavior.roamingWaypoints,
+          attendee.choice,
+        )
+      : [];
+  attendee.target = {
+    destinationId: destination.id,
+    destinationType: destination.type,
+  };
+  attendee.targetVendorId = destination.type === "vendor" ? destination.id : null;
+  attendee.route = createTravelRoute(
+    festival,
+    attendee.position,
+    destination.position,
+    movement,
+    roamingWaypoints,
+  );
+  attendee.routeIndex = 0;
+  attendee.roamingWaypointCount = roamingWaypoints.length;
+  if (attendee.status !== "entering") {
+    attendee.status = roamingWaypoints.length > 0 ? "roaming" : "walking";
+  }
 }
 
 function snapshotFrame(
@@ -134,12 +337,25 @@ function snapshotFrame(
     timeSeconds,
     attendees: [...attendees.values()]
       .sort((left, right) => left.id.localeCompare(right.id))
-      .map(({ id, position, status, targetVendorId }) => ({
-        id,
-        position: { ...position },
-        status,
-        targetVendorId,
-      })),
+      .map(
+        ({
+          id,
+          position,
+          status,
+          targetVendorId,
+          target,
+          completedStops,
+          remainingBudget,
+        }) => ({
+          id,
+          position: { ...position },
+          status,
+          targetVendorId,
+          target: target ? { ...target } : null,
+          completedStops: completedStops ?? 0,
+          remainingBudget,
+        }),
+      ),
     vendors: vendors.map((vendor) => {
       const queue = queues.get(vendor.id)!;
       return {
@@ -154,9 +370,13 @@ function snapshotFrame(
 
 function processServiceCompletions(
   timeSeconds: number,
+  festival: Festival,
+  settings: ResolvedSettings,
   vendors: Vendor[],
   queues: Map<Id, VendorQueueState>,
   attendees: Map<Id, AttendeeState>,
+  entrances: Map<Id, { position: Point }>,
+  movement: RandomStream,
   stepEvents: SimulationEvent[],
 ): void {
   for (const vendor of vendors) {
@@ -171,14 +391,20 @@ function processServiceCompletions(
       releaseServiceSlot(queue, attendee.id);
       const stockedOut = completePurchase(queue);
       attendee.requestOpen = false;
-      beginLeaving(attendee);
+      attendee.remainingBudget =
+        (attendee.remainingBudget ?? attendee.profile.initialBudget) - vendor.averagePrice;
       stepEvents.push({
         type: "purchase",
         timeSeconds,
         attendeeId: attendee.id,
         vendorId: vendor.id,
         amount: vendor.averagePrice,
+        remainingBudget: attendee.remainingBudget,
+        inventoryRemaining: queue.inventoryRemaining,
       });
+      finishVisit(attendee, timeSeconds, false, stepEvents);
+      const entrance = entrances.get(attendee.entranceId)!;
+      afterCompletedStop(attendee, festival, settings, entrance.position, movement);
       if (stockedOut) {
         stepEvents.push({ type: "stockout", timeSeconds, vendorId: vendor.id });
       }
@@ -190,7 +416,9 @@ function processServiceCompletions(
         const attendee = attendees.get(entry.attendeeId);
         if (attendee) {
           attendee.requestOpen = false;
-          beginLeaving(attendee);
+          finishVisit(attendee, timeSeconds, false, stepEvents);
+          const entrance = entrances.get(attendee.entranceId)!;
+          afterCompletedStop(attendee, festival, settings, entrance.position, movement);
         }
         stepEvents.push({
           type: "queue_abandon",
@@ -206,33 +434,26 @@ function processServiceCompletions(
 
 function processTimeouts(
   timeSeconds: number,
+  festival: Festival,
+  settings: ResolvedSettings,
   queues: Map<Id, VendorQueueState>,
-  profiles: Map<Id, AttendeeProfile>,
   attendees: Map<Id, AttendeeState>,
+  entrances: Map<Id, { position: Point }>,
+  movement: RandomStream,
   stepEvents: SimulationEvent[],
 ): void {
   for (const queue of [...queues.values()].sort((left, right) =>
     left.vendorId.localeCompare(right.vendorId),
   )) {
     for (const entry of [...queue.waiting]) {
-      const profile = profiles.get(entry.attendeeId);
-      if (!profile) throw new Error(`Unknown profile: ${entry.attendeeId}`);
-      const waitedSeconds = timeSeconds - entry.joinedAtSeconds;
-      if (
-        !hasQueueTimedOut(
-          entry.joinedAtSeconds,
-          timeSeconds,
-          profile.queueToleranceSeconds,
-        )
-      ) {
-        continue;
-      }
-
-      removeWaitingRequest(queue, entry.attendeeId);
       const attendee = attendees.get(entry.attendeeId);
       if (!attendee) throw new Error(`Unknown attendee: ${entry.attendeeId}`);
+      const tolerance =
+        attendee.profile.queueToleranceSeconds * settings.behavior.queueToleranceMultiplier;
+      if (!hasQueueTimedOut(entry.joinedAtSeconds, timeSeconds, tolerance)) continue;
+      removeWaitingRequest(queue, entry.attendeeId);
       attendee.requestOpen = false;
-      beginLeaving(attendee);
+      const waitedSeconds = timeSeconds - entry.joinedAtSeconds;
       stepEvents.push({
         type: "queue_abandon",
         timeSeconds,
@@ -240,7 +461,39 @@ function processTimeouts(
         vendorId: queue.vendorId,
         waitedSeconds,
       });
+      finishVisit(attendee, timeSeconds, false, stepEvents);
+      const entrance = entrances.get(attendee.entranceId)!;
+      beginExit(
+        attendee,
+        "queue_tolerance_exceeded",
+        festival,
+        entrance.position,
+        movement,
+      );
     }
+  }
+}
+
+function processDwellCompletions(
+  timeSeconds: number,
+  festival: Festival,
+  settings: ResolvedSettings,
+  attendees: Map<Id, AttendeeState>,
+  entrances: Map<Id, { position: Point }>,
+  movement: RandomStream,
+  stepEvents: SimulationEvent[],
+): void {
+  for (const attendee of attendees.values()) {
+    if (
+      attendee.status !== "dwelling" ||
+      attendee.activeVisit?.dwellCompletesAtSeconds === undefined ||
+      attendee.activeVisit.dwellCompletesAtSeconds > timeSeconds + Number.EPSILON
+    ) {
+      continue;
+    }
+    finishVisit(attendee, timeSeconds, false, stepEvents);
+    const entrance = entrances.get(attendee.entranceId)!;
+    afterCompletedStop(attendee, festival, settings, entrance.position, movement);
   }
 }
 
@@ -248,6 +501,7 @@ function moveAttendees(
   timeSeconds: number,
   festival: Festival,
   settings: SimulationSettings,
+  destinations: ReadonlyMap<Id, ResolvedDestination>,
   attendees: Map<Id, AttendeeState>,
   entrances: Map<Id, { position: Point }>,
   stepEvents: SimulationEvent[],
@@ -259,40 +513,65 @@ function moveAttendees(
     if (
       attendee.status === "queued" ||
       attendee.status === "purchasing" ||
+      attendee.status === "dwelling" ||
+      attendee.status === "choosing" ||
       attendee.status === "exited" ||
       attendee.spawnTimeSeconds === timeSeconds
     ) {
       continue;
     }
-    const target = attendee.route[attendee.routeIndex];
-    if (!target) continue;
+    const targetPoint = attendee.route[attendee.routeIndex];
+    if (!targetPoint) continue;
+    if (attendee.status === "entering") {
+      attendee.status = attendee.roamingWaypointCount > 0 ? "roaming" : "walking";
+    }
     const movement = moveToward(
       attendee.position,
-      target,
-      settings.walkingSpeedMetersPerSecond * settings.stepSeconds,
+      targetPoint,
+      settings.walkingSpeedMetersPerSecond *
+        attendee.profile.walkingSpeedMultiplier *
+        settings.stepSeconds,
     );
     attendee.position = clampToBounds(movement.position, festival);
-    if (attendee.status === "entering") attendee.status = "walking";
     if (!movement.arrived) continue;
 
-    if (
-      attendee.status === "walking" &&
-      attendee.routeIndex >= attendee.destinationIndex
-    ) {
-      if (attendee.targetVendorId) {
-        arrivals.push({ attendee, vendorId: attendee.targetVendorId });
-      } else {
-        beginLeaving(attendee);
-      }
+    if (attendee.routeIndex < attendee.route.length - 1) {
+      attendee.routeIndex += 1;
+      attendee.status =
+        attendee.routeIndex < attendee.roamingWaypointCount
+          ? "roaming"
+          : attendee.status === "leaving"
+            ? "leaving"
+            : "walking";
       continue;
     }
 
-    attendee.routeIndex += 1;
-    if (attendee.routeIndex >= attendee.route.length) {
+    if (attendee.status === "leaving") {
       const entrance = entrances.get(attendee.entranceId);
-      if (!entrance)
-        throw new Error(`Unknown entrance: ${attendee.entranceId}`);
-      exitAttendee(attendee, entrance.position, timeSeconds, stepEvents);
+      if (!entrance) throw new Error(`Unknown entrance: ${attendee.entranceId}`);
+      exitAttendee(
+        attendee,
+        entrance.position,
+        timeSeconds,
+        attendee.exitReason ?? "no_eligible_destination",
+        stepEvents,
+      );
+      continue;
+    }
+
+    const target = attendee.target;
+    const destination = target ? destinations.get(target.destinationId) : undefined;
+    if (!destination) {
+      attendee.status = "choosing";
+      attendee.target = null;
+      attendee.targetVendorId = null;
+      attendee.route = [];
+      attendee.routeIndex = 0;
+      continue;
+    }
+    startVisit(attendee, destination, timeSeconds, settings, stepEvents);
+    if (destination.type === "vendor") {
+      arrivals.push({ attendee, vendorId: destination.id });
     }
   }
   return arrivals;
@@ -301,7 +580,11 @@ function moveAttendees(
 function processArrivals(
   arrivals: VendorArrival[],
   timeSeconds: number,
+  festival: Festival,
+  settings: ResolvedSettings,
   queues: Map<Id, VendorQueueState>,
+  entrances: Map<Id, { position: Point }>,
+  movement: RandomStream,
   stepEvents: SimulationEvent[],
 ): void {
   arrivals.sort(
@@ -312,12 +595,31 @@ function processArrivals(
   for (const { attendee, vendorId } of arrivals) {
     const queue = queues.get(vendorId);
     if (!queue) throw new Error(`Unknown vendor: ${vendorId}`);
+    const effectiveTolerance =
+      attendee.profile.queueToleranceSeconds *
+      settings.behavior.queueToleranceMultiplier;
+    const canStartWithoutWaiting =
+      queue.active.length < queue.serverCount && hasServiceInventory(queue);
+    if (effectiveTolerance === 0 && !canStartWithoutWaiting) {
+      finishVisit(attendee, timeSeconds, false, stepEvents);
+      const entrance = entrances.get(attendee.entranceId)!;
+      beginExit(
+        attendee,
+        "queue_tolerance_exceeded",
+        festival,
+        entrance.position,
+        movement,
+      );
+      continue;
+    }
     const admitted = admitRequest(queue, {
       attendeeId: attendee.id,
       joinedAtSeconds: timeSeconds,
     });
     if (!admitted) {
-      beginLeaving(attendee);
+      finishVisit(attendee, timeSeconds, false, stepEvents);
+      const entrance = entrances.get(attendee.entranceId)!;
+      afterCompletedStop(attendee, festival, settings, entrance.position, movement);
       continue;
     }
     attendee.status = "queued";
@@ -367,7 +669,7 @@ function startServices(
   }
 }
 
-function terminateOpenRequestsAtRunEnd(
+function terminateAtRunEnd(
   timeSeconds: number,
   attendees: Map<Id, AttendeeState>,
   queues: Map<Id, VendorQueueState>,
@@ -377,22 +679,26 @@ function terminateOpenRequestsAtRunEnd(
   for (const attendee of [...attendees.values()].sort((left, right) =>
     left.id.localeCompare(right.id),
   )) {
-    if (!attendee.requestOpen) continue;
-    for (const queue of queues.values()) {
-      removeWaitingRequest(queue, attendee.id);
-      if (queue.active.some((slot) => slot.attendeeId === attendee.id)) {
-        releaseServiceSlot(queue, attendee.id);
+    if (attendee.status === "exited") continue;
+    if (attendee.requestOpen) {
+      for (const queue of queues.values()) {
+        removeWaitingRequest(queue, attendee.id);
+        if (queue.active.some((slot) => slot.attendeeId === attendee.id)) {
+          releaseServiceSlot(queue, attendee.id);
+        }
       }
+      attendee.requestOpen = false;
     }
+    finishVisit(attendee, timeSeconds, true, stepEvents);
     const entrance = entrances.get(attendee.entranceId);
     if (!entrance) throw new Error(`Unknown entrance: ${attendee.entranceId}`);
-    exitAttendee(attendee, entrance.position, timeSeconds, stepEvents);
+    exitAttendee(attendee, entrance.position, timeSeconds, "run_ended", stepEvents);
   }
 }
 
 export const runSimulation: RunSimulation = (festival, settings) => {
   validateSettings(settings);
-  const resolvedSettings = {
+  const resolvedSettings: ResolvedSettings = {
     ...settings,
     behavior: resolveBehaviorSettings(settings.behavior),
   };
@@ -401,10 +707,14 @@ export const runSimulation: RunSimulation = (festival, settings) => {
     festival,
     resolvedSettings,
     streams,
-  );
-  const profileById = new Map(
-    attendeeProfiles.map((profile) => [profile.id, profile]),
-  );
+  ).map((profile) => ({
+    ...profile,
+    intent: assignStableIntent(
+      settings.seed,
+      profile.choiceStreamKey,
+      resolvedSettings.behavior.intentWeights,
+    ),
+  }));
   const profilesBySpawn = [...attendeeProfiles].sort(
     (left, right) =>
       left.spawnTimeSeconds - right.spawnTimeSeconds ||
@@ -416,15 +726,17 @@ export const runSimulation: RunSimulation = (festival, settings) => {
   const vendors = [...festival.vendors].sort((left, right) =>
     left.id.localeCompare(right.id),
   );
+  const destinations = resolveDestinations(festival, resolvedSettings.behavior);
+  const destinationsById = new Map(
+    destinations.map((destination) => [destination.id, destination]),
+  );
   const queues = new Map(
     vendors.map((vendor) => [vendor.id, createVendorQueueState(vendor)]),
   );
   const attendees = new Map<Id, AttendeeState>();
   const events: SimulationEvent[] = [];
   const frames: SimulationFrame[] = [];
-  const totalSteps = Math.floor(
-    settings.durationSeconds / settings.stepSeconds,
-  );
+  const totalSteps = Math.floor(settings.durationSeconds / settings.stepSeconds);
   let profileIndex = 0;
   let nextFrameTime = 0;
 
@@ -435,11 +747,7 @@ export const runSimulation: RunSimulation = (festival, settings) => {
     if (stepIndex === 0) {
       for (const vendor of vendors) {
         if (vendor.inventory === 0) {
-          stepEvents.push({
-            type: "stockout",
-            timeSeconds,
-            vendorId: vendor.id,
-          });
+          stepEvents.push({ type: "stockout", timeSeconds, vendorId: vendor.id });
         }
       }
     }
@@ -451,26 +759,27 @@ export const runSimulation: RunSimulation = (festival, settings) => {
       const profile = profilesBySpawn[profileIndex]!;
       const entrance = entrances.get(profile.entranceId);
       if (!entrance) throw new Error(`Unknown entrance: ${profile.entranceId}`);
-      const vendor = chooseVendor(profile, vendors, streams.choice);
-      const destination =
-        vendor?.position ?? festival.stages[0]?.position ?? entrance.position;
-      const route = createRoute(
-        festival,
-        entrance.position,
-        destination,
-        streams.movement,
-      );
       attendees.set(profile.id, {
         id: profile.id,
         entranceId: entrance.id,
         spawnTimeSeconds: timeSeconds,
+        profile,
+        choice: createAttendeeChoiceStream(settings.seed, profile.choiceStreamKey),
         position: clampToBounds(entrance.position, festival),
         status: "entering",
-        targetVendorId: vendor?.id ?? null,
-        route,
+        targetVendorId: null,
+        target: null,
+        completedStops: 0,
+        remainingBudget: profile.initialBudget,
+        route: [],
         routeIndex: 0,
-        destinationIndex: Math.max(0, route.length - 2),
+        roamingWaypointCount: 0,
         requestOpen: false,
+        visitsByDestination: new Map(),
+        vendorStops: 0,
+        stageStops: 0,
+        amenityStops: 0,
+        lastDestinationId: null,
       });
       stepEvents.push({
         type: "spawn",
@@ -484,21 +793,53 @@ export const runSimulation: RunSimulation = (festival, settings) => {
     if (stepIndex > 0) {
       processServiceCompletions(
         timeSeconds,
+        festival,
+        resolvedSettings,
         vendors,
         queues,
         attendees,
+        entrances,
+        streams.movement,
         stepEvents,
       );
-      processTimeouts(timeSeconds, queues, profileById, attendees, stepEvents);
+      processTimeouts(
+        timeSeconds,
+        festival,
+        resolvedSettings,
+        queues,
+        attendees,
+        entrances,
+        streams.movement,
+        stepEvents,
+      );
+      processDwellCompletions(
+        timeSeconds,
+        festival,
+        resolvedSettings,
+        attendees,
+        entrances,
+        streams.movement,
+        stepEvents,
+      );
       const arrivals = moveAttendees(
         timeSeconds,
         festival,
         settings,
+        destinationsById,
         attendees,
         entrances,
         stepEvents,
       );
-      processArrivals(arrivals, timeSeconds, queues, stepEvents);
+      processArrivals(
+        arrivals,
+        timeSeconds,
+        festival,
+        resolvedSettings,
+        queues,
+        entrances,
+        streams.movement,
+        stepEvents,
+      );
       startServices(
         timeSeconds,
         settings,
@@ -508,16 +849,44 @@ export const runSimulation: RunSimulation = (festival, settings) => {
         streams.service,
         stepEvents,
       );
+      processTimeouts(
+        timeSeconds,
+        festival,
+        resolvedSettings,
+        queues,
+        attendees,
+        entrances,
+        streams.movement,
+        stepEvents,
+      );
+    }
 
-      if (stepIndex === totalSteps) {
-        terminateOpenRequestsAtRunEnd(
+    if (stepIndex < totalSteps) {
+      for (const attendee of [...attendees.values()].sort((left, right) =>
+        left.id.localeCompare(right.id),
+      )) {
+        if (attendee.status !== "choosing" && attendee.status !== "entering") continue;
+        if (
+          attendee.status === "entering" &&
+          attendee.spawnTimeSeconds === timeSeconds
+        ) {
+          continue;
+        }
+        if (attendee.route.length > 0) continue;
+        const entrance = entrances.get(attendee.entranceId)!;
+        planDestination(
+          attendee,
           timeSeconds,
-          attendees,
+          festival,
+          resolvedSettings,
+          destinations,
           queues,
-          entrances,
-          stepEvents,
+          entrance.position,
+          streams.movement,
         );
       }
+    } else {
+      terminateAtRunEnd(timeSeconds, attendees, queues, entrances, stepEvents);
     }
 
     appendOrderedEvents(events, stepEvents);

@@ -89,22 +89,36 @@ describe("SIM-02 to UI-02 combined handoff", () => {
       expect(JSON.parse(JSON.stringify(snapshot.result))).toEqual(
         snapshot.result,
       );
-      expect(
-        new Set(
-          snapshot.result.frames.flatMap((frame) =>
-            frame.attendees.map((person) => person.status),
-          ),
+      const statuses = new Set(
+        snapshot.result.frames.flatMap((frame) =>
+          frame.attendees.map((person) => person.status),
         ),
-      ).toEqual(
-        new Set([
+      );
+      expect(
+        ([
           "entering",
           "walking",
           "queued",
           "purchasing",
           "leaving",
           "exited",
-        ]),
-      );
+        ] as const).every((status) => statuses.has(status)),
+      ).toBe(true);
+      expect(
+        [...statuses].every((status) =>
+          [
+            "entering",
+            "choosing",
+            "walking",
+            "roaming",
+            "queued",
+            "purchasing",
+            "dwelling",
+            "leaving",
+            "exited",
+          ].includes(status),
+        ),
+      ).toBe(true);
       expect(
         snapshot.result.events.some((event) => event.type === "purchase"),
       ).toBe(true);
