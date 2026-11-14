@@ -1,5 +1,105 @@
 # SIM-02 and UI-02 integration handoff
 
+## Implemented SIM-02 handoff
+
+SIM-02 is implemented on `codex/sim-02-queue-service` at commit `711e2c2`.
+The simulation side is merge-ready for the scope in `docs/TASKS.md`; no shared
+domain contract, fixture, UI, analytics, or package dependency changed.
+
+The concrete engine boundary remains:
+
+```ts
+import { runSimulation } from "@/simulation";
+
+const result = runSimulation(festivalSnapshot, settingsSnapshot);
+```
+
+Implementation ownership is contained in:
+
+- `src/simulation/queue/vendorQueue.ts` for FIFO waiting state, admission,
+  server slots, timeout boundaries, inventory, and slot release;
+- `src/simulation/events/order.ts` for stable same-timestamp event ordering;
+- `src/simulation/events/reduce.ts` for temporary contract-valid aggregates
+  derived from the event ledger until ANA-01 owns the final reducer;
+- `src/simulation/runSimulation.ts` for fixed-step composition with the SIM-01
+  profiles, arrivals, vendor choice, movement, named streams, and frames;
+- adjacent unit and integration tests under `src/simulation/**`.
+
+### Implemented fixed-step behavior
+
+For each fixed step, the engine deterministically:
+
+1. spawns due attendee profiles in spawn-time and attendee-ID order;
+2. completes due service slots, emits purchases, updates inventory and sales,
+   and emits a one-time stockout when finite inventory reaches zero;
+3. removes waiting attendees whose queue tolerance has reached its exact
+   boundary and emits `queue_abandon`;
+4. advances walking/leaving attendees through the existing SIM-01 waypoint
+   movement;
+5. admits vendor arrivals in vendor-ID then attendee-ID order, respecting
+   waiting queue limits and deterministic full-queue rejection;
+6. fills available server slots FIFO and draws each duration only from the
+   named `service` stream;
+7. applies run-end cleanup through the existing exit path for unresolved
+   admitted requests; and
+8. records a complete frame after all events for that frame timestamp have
+   been applied.
+
+A request rejected because the waiting queue is full begins leaving without a
+new event. The frozen v1 event union has no queue-rejection event. A request
+removed from a waiting queue by stockout emits `queue_abandon`, keeping the
+event ledger and frame queue length reconcilable.
+
+### Verification completed
+
+The implementation passed:
+
+- FIFO, simultaneous ID tie-breaking, queue-limit, duplicate-membership, and
+  service-slot-release unit tests;
+- capacity-one versus capacity-two throughput tests under common demand;
+- exact-boundary timeout abandonment;
+- finite and unlimited inventory, non-negative inventory, one-time stockout,
+  and no-purchase-after-stockout checks;
+- event/frame reconciliation for queue length, inventory, and cumulative sales;
+- same-seed equality, different-seed inequality, named-stream independence,
+  monotonic time, in-bounds positions, input immutability, JSON serialization,
+  and multiple explicit seeds;
+- the one-attendee spawn → walk → queue → service → purchase → exit slice; and
+- `npm run verify`: lint, typecheck, all 52 repository tests, and the production
+  Next.js build.
+
+A real UI-01 `prepareSimulationInput` snapshot of `demoFestival` was also run
+through the actual engine with 250 attendees. It produced 181 ordered playback
+frames, 402 canonical events, all six attendee statuses, stable attendee/vendor
+ID ordering, and an approximately 2.54 MB JSON result without mutating the
+layout, festival snapshot, or settings.
+
+### UI-02 implementation checklist
+
+UI-02 can build against the frozen `SimulationResult` contract without an
+engine change. It should:
+
+- retain the UI-01 festival and settings snapshots alongside the result;
+- treat `frames` as immutable, complete snapshots ordered by `timeSeconds`;
+- render positions in meters through the existing renderer transform;
+- render the supplied attendee status and `targetVendorId` without inferring
+  queue or purchase state independently;
+- show vendor `queueLength`, `inventoryRemaining`, and `cumulativeSales`
+  directly from each selected frame;
+- preserve `null` inventory as unlimited rather than displaying it as zero;
+- keep exited attendees addressable while scrubbing, even if presentation
+  chooses to fade or hide them;
+- clamp cursor access at the first and final available frames and handle empty
+  or one-frame inputs;
+- keep pause, restart, speed, scrub, and interpolation state outside the
+  `SimulationResult`; and
+- avoid calculating revenue, wait, utilization, throughput, or other canonical
+  business metrics from frames. ANA-01 owns those reductions from events.
+
+The remaining UI-02-specific gates are browser playback behavior and a manual
+300-circle performance check at 30+ FPS. Those cannot be completed until the
+playback implementation exists and are not SIM-02 merge blockers.
+
 ## Purpose and source of truth
 
 SIM-02 adds queues, service, purchases, abandonment, inventory, and stockout
@@ -163,7 +263,7 @@ forecast. Dashboard work waits for the event-derived ANA-01 implementation.
 
 1. UI-02 builds cursor, play/pause, scrub, restart, and speed behavior against
    `demoSimulationResult.frames` without importing engine internals.
-2. SIM-02 implements and tests queue/event behavior behind the existing
+2. SIM-02 has implemented and tested queue/event behavior behind the existing
    `runSimulation(festival, settings)` export.
 3. UI-02 adds visual handling for `queued`, `purchasing`, vendor queue length,
    inventory, cumulative sales, and stockout presentation using only frames or
@@ -201,8 +301,8 @@ merges, run `npm run verify` and confirm:
 
 ## Definition of done
 
-The handoff is complete when the real UI-01 editor snapshot can run through
-the real SIM-02 engine, UI-02 can play and scrub the returned frames, event and
-frame state reconcile, all deterministic/conservation tests pass, and the
-combined `npm run verify` gate is green. Remaining performance measurements or
-known visualization limitations must be recorded in the integration PR.
+The SIM-02 side of this handoff is complete: a real UI-01 snapshot runs through
+the real engine, event and frame state reconcile, deterministic/conservation
+tests pass, and `npm run verify` is green. The combined handoff is complete once
+UI-02 can play and scrub those returned frames without mutation and its manual
+performance measurement is recorded in the integration PR.
