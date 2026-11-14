@@ -6,6 +6,7 @@ import type { Point } from "@/domain";
 import { demoFestival } from "@/fixtures/demoFestival";
 import { downloadLayoutImage } from "./exportImage";
 import ComponentForm from "./ComponentForm";
+import PlaybackWorkspace from "../playback/PlaybackWorkspace";
 import {
   snapshotFestival,
   validateSimulationFestival,
@@ -311,8 +312,8 @@ export default function FestivalEditor() {
               </ul>
             ) : (
               <p>
-                Layout fields pass the input checks. The simulation engine is
-                not connected yet.
+                Layout fields pass the input checks. Use Run simulation below to
+                generate recorded playback.
               </p>
             )}
             {layout.editor.elements.length > 0 && (
@@ -520,6 +521,7 @@ export default function FestivalEditor() {
           )}
         </aside>
       </div>
+      <PlaybackWorkspace layout={layout} />
       <footer className="status" role="status">
         {notice}
       </footer>
