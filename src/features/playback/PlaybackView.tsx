@@ -10,6 +10,7 @@ import {
   type PlaybackAction,
 } from "./controller";
 import { FrameDetails, StatusLegend } from "./FrameDetails";
+import { startPlaybackAnimation } from "./animation";
 import "./playback.css";
 
 const PlaybackCanvas = dynamic(() => import("./PlaybackCanvas"), {
@@ -156,19 +157,9 @@ export default function PlaybackView({
   const [inspectedId, setInspectedId] = useState("");
   useEffect(() => {
     if (!state.playing) return;
-    let request = 0,
-      previous: number | undefined;
-    const tick = (timestamp: number) => {
-      if (previous !== undefined)
-        dispatch({
-          type: "advance",
-          elapsedSeconds: (timestamp - previous) / 1000,
-        });
-      previous = timestamp;
-      request = requestAnimationFrame(tick);
-    };
-    request = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(request);
+    return startPlaybackAnimation((elapsedSeconds) =>
+      dispatch({ type: "advance", elapsedSeconds }),
+    );
   }, [state.playing]);
   // Browser deltas move a presentation cursor only; selected data always comes from saved simulation time.
   const index = frameCursor(frames, state.timeSeconds),

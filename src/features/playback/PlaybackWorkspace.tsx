@@ -77,6 +77,13 @@ export default function PlaybackWorkspace({
           your layout. Or try a ready-made market with eight vendors.
         </p>
       </header>
+      <p role="note" className="demo-context">
+        Modeled assumptions: this version models vendor preferences, queue
+        patience, purchases, and stockouts. Prices and personal budgets do not
+        yet influence choices. Multi-stop visits, roaming, and stage or amenity
+        dwell are planned for a future update.
+        Results are modeled estimates, not forecasts.
+      </p>
       <form
         className="run-settings"
         aria-label="Simulation settings"

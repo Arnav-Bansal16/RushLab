@@ -1,5 +1,25 @@
 # UI-02 playback integrated with SIM-02
 
+## Review against updated behavior planning
+
+Reviewed planning main `390d85c`. CON-02, SIM-03, ANA-03, and UI-04 describe
+future contracts/behavior, not changes already available in the current engine.
+UI-02 preserves the existing frame handoff and displays current modeled
+assumptions, including that price/budget choice and multi-stop/dwell behavior
+are not implemented. Those features must wait for their reviewed contracts.
+
+Fixed background-tab playback skipping: visibility changes reset the browser
+animation baseline, so hidden time cannot jump the recording forward. A
+regression test covers suspended animation callbacks, hidden callbacks, resume,
+and cleanup. This affects presentation only, never simulation state.
+
+Post-review verification: 54 targeted playback/simulation tests and 76 full
+tests passed, along with lint, typecheck, and production build. The production
+browser smoke again passed live queues/purchases/stockouts, unlimited inventory,
+pause/scrub, snapshot isolation, and 390 px layout without browser exceptions.
+The 300-person redraw check measured 60.00 FPS locally in Chrome 157 on macOS
+arm64; this remains a local headless measurement, not a hardware guarantee.
+
 ## Source and ownership
 
 UI-02 includes main `5a98d8d`, including SIM-02 implementation `711e2c2` and

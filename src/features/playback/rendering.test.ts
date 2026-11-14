@@ -54,6 +54,8 @@ describe("playback rendering", () => {
       createElement(PlaybackWorkspace, { layout: createBlankLayout() }),
     );
     expect(empty).toContain("No simulation has run yet");
+    expect(empty).toContain("Prices and personal budgets do not");
+    expect(empty).toContain("modeled estimates, not forecasts");
     expect(empty).toContain('role="status"');
     const noFrames = renderToStaticMarkup(
       createElement(PlaybackView, {
