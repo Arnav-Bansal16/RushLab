@@ -99,6 +99,9 @@ Do not hide behavior or contract work inside those existing task branches.
 - **Output:** Serializable contracts for simulation-aware amenities, behavior
   settings, stable attendee intent, generic playback targets/visits, and
   destination metrics while preserving the public `RunSimulation` signature.
+  Include the exact defaults, limits, type-level dwell ranges, per-location
+  dwell overrides, effective queue-tolerance rule, and one-purchase limit from
+  `docs/ARCHITECTURE.md`.
 - **Acceptance:** existing fixtures migrate cleanly; defaults reproduce a
   valid run; schema-version/backwards-compatibility treatment is explicit; all
   IDs/weights/ranges validate; JSON round-trip passes; both developers approve
@@ -118,14 +121,17 @@ Do not hide behavior or contract work inside those existing task branches.
 - **Output:** Stable stage-first, vendor-first, explorer, and amenity-first
   intents; at most three stops; stage/amenity dwell; one or two seeded roaming
   waypoints; affordable price-sensitive vendor choice; destination visit
-  events; and safe exit fallback.
+  events; resolved dwell intervals; budget deduction for at most one purchase;
+  and safe exit fallback.
 - **Acceptance:** no unbounded roaming; vendors above remaining budget are
   never selected; price changes can change modeled demand; stage and amenity
   destinations receive visits; vendors remain the only P0 queues; existing
   queue/inventory/event invariants remain green; no `Math.random()`.
 - **Tests:** intent mix/defaults, price sensitivity, unaffordable vendors,
-  stage attraction, bounds, maximum stops, missing destination types, same-seed
-  equality, stream independence, and all SIM-02 conservation tests.
+  post-purchase budget, stage attraction, default and overridden dwell ranges,
+  queue-tolerance multiplier boundaries, bounds, maximum stops/one-vendor-stop,
+  missing destination types, same-seed equality, stream independence, and all
+  SIM-02 conservation tests.
 - **Effort:** 4–6 hours.
 - **Checkpoint:** CP3B behavior slice.
 
@@ -153,15 +159,18 @@ Do not hide behavior or contract work inside those existing task branches.
   playback presentation, and narrow app composition.
 - **Dependencies / inputs:** CON-02; may proceed in parallel with SIM-03 after
   the contract merges.
-- **Output:** Vendor `averagePrice` creation/editing plus advanced controls for
-  intent/destination weights, maximum stops, dwell/roaming ranges,
-  queue-tolerance multiplier, and global price elasticity. Playback renders
-  generic targets/dwelling from frames without calculating behavior.
+- **Output:** Vendor `averagePrice` and `serviceTimeSeconds` creation/editing,
+  plus advanced controls for intent/destination weights, maximum stops,
+  type-level dwell/roaming ranges, optional per-stage/per-amenity dwell
+  overrides, queue-tolerance multiplier, and global price elasticity. Playback
+  renders generic targets/dwelling from frames without calculating behavior.
 - **Acceptance:** accessible labels; finite non-negative weights/prices;
   documented safe handling when all eligible weights are zero; active run uses
   immutable festival/settings snapshots; visible “modeled assumptions” copy.
 - **Tests:** form validation, immutable snapshot handoff, default settings,
-  changed-price handoff, all-zero-weight handling, and playback boundary tests.
+  changed-price/service/dwell handoff, inheritance versus per-location override,
+  min/max and numeric-limit validation, all-zero-weight handling, and playback
+  boundary tests.
 - **Effort:** 3–5 hours.
 - **Checkpoint:** CP3B behavior slice.
 

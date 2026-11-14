@@ -11,6 +11,12 @@ Vitest is the P0 test runner. Keep most tests pure and fast under Node; browser 
   destinations, respect the maximum-stop limit, and safely skip missing types.
 - Roaming waypoints and all destination positions remain in bounds; stage and
   amenity dwell intervals terminate deterministically.
+- Type-level dwell defaults and per-location overrides resolve once, stay within
+  their configured ranges, and truncate cleanly at run end.
+- Effective vendor patience equals stable attendee queue tolerance multiplied
+  by the configured global multiplier; dwell is never counted as queue wait.
+- Every attendee has at most one vendor stop/purchase, cannot spend above the
+  current budget, and has the purchase amount deducted exactly once.
 - FIFO queues, server capacity, and simultaneous event ordering are correct.
 - Purchases update inventory and event-derived results exactly once.
 - Stocked-out vendors cannot complete purchases.
@@ -26,7 +32,8 @@ Vitest is the P0 test runner. Keep most tests pure and fast under Node; browser 
 ## Test layers
 
 1. Unit: PRNG stream isolation, intent assignment, destination/price utility,
-   bounded itinerary planning, queue state, movement/dwell, and metric reducers.
+   bounded itinerary planning, dwell-default resolution, queue-tolerance
+   scaling, queue state, movement/dwell, and metric reducers.
 2. Invariant/property-style loops: maximum stops, in-bounds roaming, affordable
    choices, conservation, non-negative inventory/queues, and stable ordering
    across many seeds.

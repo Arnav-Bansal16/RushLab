@@ -15,6 +15,8 @@ The demo must show business value, not merely animated dots.
 - Price-sensitive affordable vendor choice using editable modeled prices.
 - A bounded mix of stage-first, vendor-first, explorer, and amenity-first
   itineraries with editable advanced behavior assumptions.
+- Editable global dwell defaults with optional per-stage or per-amenity
+  overrides; attendee queue patience remains separate from destination dwell.
 - Plausible waypoint/path movement and deterministic dwell; accurate vendor
   queue, service, purchase, abandonment, and stockout behavior.
 - Sparse playback frames plus vendor revenue, purchases, average wait, peak queue, utilization, and abandonment.
@@ -25,7 +27,8 @@ The demo must show business value, not merely animated dots.
 
 P0 does not require scientifically validated pedestrian dynamics, calibrated
 consumer elasticity, medical-incident prediction, queues at nonvendor
-amenities, or global mathematical optimization.
+amenities, multiple vendor purchases per attendee, or global mathematical
+optimization.
 
 ## P1 — only after P0 deploys
 

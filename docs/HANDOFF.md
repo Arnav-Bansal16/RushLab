@@ -35,6 +35,12 @@ panel. Each attendee has at most three destinations. Vendors remain the only
 queued/service destinations. Nonvendor amenities do not model congestion,
 staffing, medical incidents, or service queues.
 
+The P0 parameter source of truth is `docs/ARCHITECTURE.md`: stage 30–120
+seconds, restroom 45–120, seating 30–180, and first aid 60–300, with optional
+per-location overrides. Attendee queue tolerance is separately multiplied by a
+global 0–5 setting. Each attendee has at most one vendor stop/purchase; vendor
+price and service time remain per-vendor inputs.
+
 The exact default weights, price formula, destination eligibility, and scope
 limits are in `docs/ARCHITECTURE.md`. Task ownership and acceptance criteria are
 in `docs/TASKS.md`.
@@ -62,6 +68,7 @@ After CON-02 merges, implement UI-04 under `src/features/**` and narrow app
 composition:
 
 - add `averagePrice` to vendor creation and editing;
+- expose vendor service time and optional stage/amenity dwell overrides;
 - expose only the approved advanced settings: intent/destination weights,
   maximum stops, dwell/roam ranges, queue-tolerance multiplier, and price
   elasticity;
@@ -77,8 +84,11 @@ After CON-02 merges, implement SIM-03 under `src/simulation/**`:
 
 - assign stable intent independently from movement draws;
 - build at most three valid stops;
+- permit at most one vendor stop, deduct one completed purchase from budget,
+  and keep dwell separate from queue waiting;
 - apply the documented affordability and price formula;
 - select stages by attraction and supported amenities by configured weight;
+- resolve type-level dwell defaults and optional per-location overrides once;
 - generate one or two seeded in-bounds waypoints for explorers;
 - emit the approved destination/dwell events and frame targets;
 - preserve SIM-02 queue, inventory, purchase, abandonment, and ordering rules;

@@ -148,6 +148,52 @@ weights, destination weights, maximum stops, dwell ranges, roaming waypoints,
 queue-tolerance multiplier, and global price elasticity. UI code must not
 calculate choices or metrics.
 
+### P0 behavior parameter contract
+
+CON-02 must encode the following defaults and validation rules. These values
+are transparent demo assumptions, not empirically calibrated behavior.
+
+| Parameter                         |                                 Default | Allowed P0 range / rule                                                    |
+| --------------------------------- | --------------------------------------: | -------------------------------------------------------------------------- |
+| maximum itinerary stops           |                                       3 | integer from 1 through 3                                                   |
+| roaming waypoints for an explorer |                                       1 | integer from 0 through 2                                                   |
+| queue-tolerance multiplier        |                                     1.0 | finite value from 0 through 5                                              |
+| global price elasticity           |                                     1.0 | finite value from 0 through 10                                             |
+| any intent/destination weight     |                         as listed above | finite value from 0 through 10                                             |
+| vendor average price              |         per vendor, existing default 12 | finite display-currency value from 0 through 10,000                        |
+| vendor service time               | per vendor, existing default 75 seconds | finite value greater than 0 and at most 3,600 seconds                      |
+| stage dwell                       |                          30–120 seconds | minimum/maximum each from 0 through 3,600; minimum must not exceed maximum |
+| restroom dwell                    |                          45–120 seconds | same dwell-range validation                                                |
+| seating dwell                     |                          30–180 seconds | same dwell-range validation                                                |
+| first-aid dwell                   |                          60–300 seconds | same dwell-range validation                                                |
+
+The type-level dwell ranges above are global defaults. Each stage or supported
+amenity may optionally override its own minimum and maximum. A missing override
+inherits the current type default. Per-location overrides are part of the
+festival snapshot; global defaults are part of the settings snapshot. Playback
+and analytics use the resolved engine output and must not resolve defaults
+independently.
+
+`AttendeeProfile.queueToleranceSeconds` remains the attendee's stable base
+tolerance (currently generated from 30 through 300 seconds). Effective vendor
+queue tolerance is:
+
+```text
+effectiveQueueTolerance = profile.queueToleranceSeconds
+  * settings.queueToleranceMultiplier
+```
+
+P0 has no per-vendor tolerance override because vendors are the only queued
+destination type and tolerance represents attendee patience. Stage and amenity
+dwell is not queue waiting. ANA-01 continues to measure vendor wait from
+`queue_join` to `service_start`; ANA-03 measures dwell from destination events.
+
+Each P0 itinerary contains at most one vendor stop and therefore at most one
+purchase. The engine checks affordability against the attendee's current
+budget, records `vendor.averagePrice`, and deducts that amount after purchase.
+Repeat purchases and multi-vendor shopping are deferred. This keeps remaining
+budget semantics explicit without expanding the P0 event model.
+
 Because CP1 froze the original contracts, this expansion requires one joint
 CON-02 contract PR before implementation. CON-02 must keep the public
 `runSimulation(festival, settings)` signature but may extend the serializable

@@ -28,6 +28,13 @@
 - P0 itineraries contain at most three destinations. Vendors are the only
   queued/service destinations; stage, restroom, seating, and first aid use
   deterministic dwell intervals.
+- Each attendee has at most one vendor stop/purchase. Affordability uses current
+  budget and a completed purchase deducts its modeled amount.
+- Global dwell defaults live in the settings snapshot; optional per-location
+  dwell overrides live in the festival snapshot. The engine resolves them once
+  and emits events/frames; UI and analytics must not re-resolve them.
+- Queue tolerance is attendee base tolerance multiplied by the global settings
+  multiplier. There is no per-vendor tolerance override in P0.
 - `schemaVersion: 1` remains required until CON-02 explicitly chooses and
   documents either backwards-compatible additive defaults or a versioned
   fixture migration. Feature branches must not make that decision implicitly.
@@ -43,9 +50,10 @@
 Baseline and alternative must match on seed, attendee count/profiles, stable
 intent assignments, duration, fixed step, walking speed, intent/destination
 weights, price elasticity, queue-tolerance multiplier, stop limit, dwell/roam
-ranges, and other non-layout demand assumptions. A mismatch must either reject
-comparison or populate `ScenarioComparison.warnings`; it must never silently
-present a fair-looking delta.
+ranges, per-location dwell overrides, and other non-layout demand assumptions.
+A mismatch must either reject comparison or populate
+`ScenarioComparison.warnings`; it must never silently present a fair-looking
+delta.
 
 ## Event-to-metric ownership
 
