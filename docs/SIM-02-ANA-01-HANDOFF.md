@@ -162,6 +162,10 @@ npm run verify
 
 ## Downstream handoff
 
+See [UI-02 → ANA-01 and UI-03](./UI-02-ANA-01-UI-03-HANDOFF.md) for the
+integrated playback baseline, active-run snapshot composition, dashboard
+dependency gates, and verified UI regression checks.
+
 UI-03 consumes `SimulationResult.vendorMetrics` and `SimulationResult.totals`.
 It must not import the reducer or calculate canonical values from frames.
 
