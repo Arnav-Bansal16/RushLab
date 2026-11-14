@@ -5,7 +5,7 @@ import type {
 } from "../../domain";
 import { fromFestival } from "../editor/layout";
 
-/** Planning example only; all attendee movement is produced by the real public engine. */
+/** Illustrative planning inputs; all movement, queues and commerce come from the public engine. */
 export function createVendorDemo() {
   const stalls: { name: string; category: VendorCategory }[] = [
     { name: "Taco Kitchen", category: "food" },
@@ -64,10 +64,10 @@ export function createVendorDemo() {
       size: { width: 8, height: 6 },
       popularity: 0.7,
       averagePrice: 12,
-      serviceTimeSeconds: 45,
-      servers: 2,
-      inventory: null,
-      queueLimit: null,
+      serviceTimeSeconds: [8, 18, 6, 12, 20, 10, 30, 25][index],
+      servers: [1, 2, 2, 2, 1, 1, 1, 2][index],
+      inventory: [3, 12, null, 18, 15, 8, 10, null][index],
+      queueLimit: [12, 20, 16, 18, 18, 12, 12, 16][index],
     })),
   };
   return fromFestival(festival);

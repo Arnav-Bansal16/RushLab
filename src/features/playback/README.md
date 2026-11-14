@@ -1,111 +1,111 @@
-# UI-02 recorded playback
+# UI-02 playback integrated with SIM-02
 
-`PlaybackWorkspace` is mounted by the editor. It collects run settings and calls
-`executeRun`, which uses the exact `prepareSimulationInput(layout, settings)` →
-`runSimulation(input.festival, input.settings)` boundary. Only the public engine
-export is imported. Invalid input never reaches the engine. Validation/engine
-errors retain input warnings; a failed attempt leaves any prior successful
-result visibly labeled as such.
+## Source and ownership
 
-An active run retains independent copies of festival, settings, result, and
-warnings. Each successful run remounts `PlaybackView` with a fresh presentation
-cursor. Later editor changes do not mutate the active snapshot or its data.
-The editor remains usable while results are paused.
+UI-02 includes main `5a98d8d`, including SIM-02 implementation `711e2c2` and
+`docs/SIM-02-UI-02-HANDOFF.md`. No backend or shared-contract edits are made by
+this feature. UI code imports only the public `runSimulation` export.
+
+`PlaybackWorkspace` collects settings and invokes `executeRun`, which uses the
+exact `prepareSimulationInput(layout, settings)` →
+`runSimulation(input.festival, input.settings)` handoff. Invalid inputs block the
+engine. Errors and input warnings are retained, including warnings for visual
+exit/custom-area annotations. A failed attempt leaves any previous successful
+run visibly identified. Festival/settings/result snapshots are independent of
+later editor changes. Each successful run gets a fresh playback cursor.
 
 ## Frame semantics
 
-- The controller consumes saved `SimulationFrame[]` only. Binary search selects
-  the latest frame at or before the presentation cursor, bounded to the first
-  and final available frame. It does not assume the final time equals duration.
-- Browser animation deltas advance the presentation cursor, never the engine or
-  simulation state. No wall-clock timestamps are interpreted as simulation time.
-- Rendering is deliberately discrete: no position interpolation, invented
-  arrivals, status transitions, events, queues, inventory, sales, or metrics.
-- Unspawned attendees remain absent. All six statuses render; exited identities
-  remain as faded circles and can still be selected when scrubbing.
-- Null targets display "No target vendor". No replacement target is chosen.
-- Vendor waiting count, inventory, and completed-purchase count come directly
-  from the frame. Unlimited inventory is `null`. Purchases are not revenue.
-- No event reconstruction, metric reducers, or SIM-02 business logic exist here.
+- Binary search selects the latest complete saved frame at or before the
+  presentation cursor. Empty, single, first, sparse and final frames are safe.
+  The last available timestamp, not requested duration, bounds playback.
+- Browser animation deltas move a presentation cursor only; playback never
+  advances the engine. No wall-clock timestamps become simulation timestamps.
+- No interpolation or invented arrivals, events, positions, status transitions,
+  queues, inventory, purchases, revenue, waits, or utilization are calculated.
+- Small person silhouettes use supplied meter positions and all six statuses.
+  Exited identities remain faded for stable scrubbing. Null targets are safe.
+- Vendor waiting count, stock, and completed purchases come directly from the
+  selected frame. Waiting excludes in-service attendees; sales are purchase
+  counts, not revenue. Null inventory displays Unlimited. Zero inventory shows
+  Out of stock. The map and table share the same selected frame.
+- Live/Paused and timestamp labels make the source moment visible. Scrubbing
+  rewinds stock and purchase displays to the recorded state for that moment.
+- ANA-01 owns final business metrics; UI-02 does not reconstruct them from events.
 
-## Verification
+## Organizer workflow and example
 
-Targeted tests: `npm test -- src/features/playback`.
+Run controls emphasize guest count and duration in minutes. Technical settings,
+recording diagnostics, attendee inspection, and precise editor coordinates are
+optional disclosures. Dragging stays available. A one-click 8-vendor/2-gate
+example runs 300 guests with the real engine and starts at 4× speed, preserving
+the editor draft. The source layout is frontend example input in vendorDemo.ts,
+not a modified shared fixture or fabricated set of attendee frames.
+
+The example has varied modeled stock/service/counter/queue assumptions. Taco
+Kitchen starts with three items so the example can exercise stockout. Other
+vendors have finite or unlimited stock. All queue, purchase, timeout, and
+stockout decisions are engine-owned. These illustrative inputs do not establish
+real-world demand or lost-sales estimates.
+
+## Tests and integration review
+
+Targeted: `npm test -- src/features/playback src/simulation`.
 Full gate: `npm run verify`.
 
-Tests cover empty/single/sparse/final frames, controller play/pause/restart/scrub/
-speed behavior, bounded cursors, all attendee statuses and null targets, direct
-vendor values, frozen shared-result rendering, snapshot isolation, validation
-blocking, warning presentation, and the real public engine feeding playback.
-Shared fixtures and contracts remain unchanged.
+Playback tests cover controls, empty/single/sparse/final frames, bounds,
+all-status person rendering, null targets, direct vendor values, immutable
+fixtures/results/snapshots, validation blocking, warnings, and real engine input.
 
-Browser smoke checked the initial no-run state, invalid gate/settings input,
-warnings on rejection and success, 300-attendee real engine output, play/pause,
-speed selection, keyboard End/replay/restart, retained editor/run separation,
-and a 390 px mobile viewport with no horizontal overflow. The desktop screenshot
-was visually inspected. No page exceptions were observed.
+SIM-02 integration tests exercise the editor handoff with 300 attendees and
+seeds 42, 7 and 99. An independent test-only ledger check reconciles every frame
+against queue_join, service_start, queue_abandon, purchase and exit events. It
+checks waiting separately from service, finite/unlimited inventory, sales,
+all six statuses, JSON round-trip, determinism, a real stockout with no later
+purchase, source immutability, and sparse end times. Event reduction exists only
+in tests, never in production UI. The upstream engine tests cover FIFO,
+capacity, exact timeout boundaries, conservation, named streams, and stockouts.
 
-### 300-circle measurement
+## Performance and visualization limits
 
-Test machine: macOS 27.2, arm64, isolated headless Chrome 157.0.8103.52,
-1280 × 900 viewport. All 300 attendee identities were present in the selected
-real engine final frame, including faded exited attendees.
+Prior isolated Chrome checks on macOS 27.2 arm64 measured ~60 FPS at 1280×900
+with 300 person identities while repeatedly resizing the map by one pixel to
+force redraw. This is a local headless presentation stress check, not GPU
+profiling or a hardware/browser guarantee. The combined SIM-02 browser check
+and its measured output are recorded in the PR.
 
-Over 180 requestAnimationFrame intervals (2999.834 ms), the check alternated map
-width by one pixel to force repeated ResizeObserver/canvas redraws with all 300
-circles. Observed presentation cadence: **60.00 FPS average**, **16.7 ms p95**
-frame interval. Canvas fill instrumentation observed 109,495 fill calls during
-the measurement. The local check meets the 30 FPS target.
+Frames are deliberately sparse, so position jumps follow recording cadence.
+Simulation invocation is synchronous. Queue members can share engine-provided
+coordinates and overlap visually; UI does not invent queue-spreading positions.
+Leaving alone does not identify whether a guest purchased, abandoned, or was
+cleaned up at run end. The v1 contract has no event-exit-reason field, and exit
+markers/custom zones remain visual annotations until a joint contract change.
+No forecasts, comparison fairness claims, or lost-sales estimates are added.
 
-This is a short headless redraw stress check, not a GPU timing benchmark or a
-hardware/browser guarantee. Sparse engine frames remain sparse; 60 Hz controls
-and canvas rendering do not imply 60 simulation snapshots per second. Discrete
-position jumps are intentional in this slice. Run calculation is synchronous;
-longer/heavier simulations may block the browser until the engine returns.
-SIM-01 currently supplies movement; nonzero commerce state depends on SIM-02.
+## Combined browser verification after SIM-02 update
 
-No production dependency was added. Browser automation used a temporary
-Playwright installation outside this repository and a temporary Chrome profile.
+Full npm run verify passes 75 tests, lint, strict typecheck, and production build.
+Targeted playback + simulation suites pass 53 tests. Browser smoke used the
+actual 8-vendor / 300-guest engine result, inspecting seven timeline positions
+from the first frame to 180 seconds. Waiting counts became positive, purchases
+increased, and finite stock decreased. Taco Kitchen sold its three initial
+items and remained at zero stock/three purchases after stockout. Coffee Corner
+and Games Tent kept Unlimited inventory. Map badges and table rows followed
+the same selected snapshot, including when scrubbing backward.
 
-## Organizer usability follow-up
+Final recorded purchase counts in the illustrative seed-42 example were:
+Taco Kitchen 3, Pizza Oven 8, Coffee Corner 13, Fresh Juices 12, Burger Grill 3,
+Ice Cream 7, Event Merchandise 3, Games Tent 6. These are the engine's recorded
+counts for this example, not a revenue forecast or layout recommendation.
 
-A one-click 8-vendor market example now runs 300 guests through the real public
-engine and opens playback automatically at 4× speed. It uses a separate planning
-layout and preserves the organizer's editor draft. The input layout is declared
-in vendorDemo.ts, outside the shared fixtures; no attendee frames are fabricated.
+Live timestamps advanced while playing and stopped while paused. Editing the
+organizer layout retained the active example snapshot. A 390 px viewport had
+no horizontal overflow, and no page exceptions were observed. A repeated
+300-person canvas redraw check in isolated headless Chrome 157 on macOS arm64
+measured 60.00 FPS over 180 animation intervals. The screenshot was visually
+inspected. This is a local measurement with the limitations noted above.
 
-The main run controls are guest count and preview length in minutes. Seed, step,
-recording interval, and walking speed remain in a closed Advanced settings panel.
-Recording diagnostics and individual-attendee selection are optional disclosures.
-Guest descriptions no longer show coordinates, and editor X/Y fields are inside
-optional precise-positioning controls. Map dragging remains available.
-
-The example is labeled as a movement preview. Queueing and purchase behavior
-remain engine-owned SIM-02 work; zero placeholder business values are not
-presented as evaluated business outcomes.
-
-Follow-up verification: 16 targeted playback tests and all 48 repository tests
-pass, including real-engine coverage of all eight vendor destinations. Isolated
-Chrome 157 browser smoke confirmed one-click autoplay, 4× speed, 300 final guest
-identities, eight vendor rows, preserved blank editor, hidden advanced controls,
-closed attendee inspection, and no horizontal overflow at 390 px. The example
-playback screenshot was visually inspected; no page exceptions occurred.
-
-## Person markers and live vendor-panel follow-up
-
-Attendees now render as one lightweight Konva silhouette each (head, torso,
-arms and legs), with existing status colors and faded exited identities. No
-positions, targets, or states are changed by the visual replacement.
-
-The vendor panel receives the same selected frame as the map, shows that
-frame's timestamp, and labels live/paused playback. Consecutive-frame rendering
-tests verify that waiting, inventory, and completed purchases update verbatim.
-Browser smoke confirmed timestamps advance while playing, stay fixed while
-paused, and follow scrubbing. Business values legitimately stay unchanged when
-the current engine records no queue/purchase changes; SIM-02 owns those changes.
-
-Follow-up verification: 17 targeted tests, 49 total tests, lint, typecheck, and
-production build pass. A 300-person redraw check in the same isolated Chrome
-setup measured 60.00 FPS; the screenshot was visually inspected and no page
-exceptions occurred. This remains a local headless measurement, not a promise
-for other machines or browsers.
+Integration review found no remaining material UI handoff violation. Engine
+source, domain contracts, shared fixtures, analytics and dependencies match
+origin/main. Business metrics/interpretation remain ANA-01 work; no browser-side
+metric reducers or revenue calculations were introduced.

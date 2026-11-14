@@ -174,9 +174,10 @@ export default function PlaybackWorkspace({
             <div className="demo-context" role="note">
               <strong>Watching the 8-vendor example</strong>
               <p>
-                Follow blue guests to the named stalls. Purple guests are
-                leaving a visit. The current engine previews movement; queueing
-                and purchase behavior will come from SIM-02.
+                Watch guests arrive, wait in amber, receive service in green,
+                and leave in purple. The table follows the same recorded moment.
+                This example uses illustrative stock and service settings;
+                SIM-02 calculates all queues, purchases, and stockouts.
               </p>
             </div>
           )}

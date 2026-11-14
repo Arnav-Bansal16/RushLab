@@ -164,24 +164,46 @@ function PlaybackCanvas({
               />
             </Group>
           ))}
-          {festival.vendors.map((item) => (
-            <Group key={item.id} {...point(item.position)}>
-              <Rect
-                width={item.size.width * s}
-                height={item.size.height * s}
-                fill="#dfaa70"
-              />
-              <Text
-                text={item.name}
-                x={-35}
-                y={-18}
-                width={item.size.width * s + 70}
-                align="center"
-                fontSize={11}
-                fill="#573415"
-              />
-            </Group>
-          ))}
+          {festival.vendors.map((item) => {
+            const state = frame.vendors.find(
+              (vendor) => vendor.vendorId === item.id,
+            );
+            return (
+              <Group key={item.id} {...point(item.position)}>
+                <Rect
+                  width={item.size.width * s}
+                  height={item.size.height * s}
+                  fill={state?.inventoryRemaining === 0 ? "#a5afa2" : "#dfaa70"}
+                />
+                <Text
+                  text={item.name}
+                  x={-35}
+                  y={-18}
+                  width={item.size.width * s + 70}
+                  align="center"
+                  fontSize={11}
+                  fill="#573415"
+                />
+                {state && (
+                  <Text
+                    text={
+                      state.inventoryRemaining === 0
+                        ? "Out of stock"
+                        : `${state.queueLength} waiting`
+                    }
+                    x={-25}
+                    y={item.size.height * s + 5}
+                    width={item.size.width * s + 50}
+                    align="center"
+                    fontSize={10}
+                    fill={
+                      state.inventoryRemaining === 0 ? "#9d3f31" : "#795c17"
+                    }
+                  />
+                )}
+              </Group>
+            );
+          })}
         </Layer>
         <Layer listening={false}>
           <AttendeeMarks frame={frame} transform={transform} />

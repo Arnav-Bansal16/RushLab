@@ -165,7 +165,9 @@ describe("playback rendering", () => {
         onInspect: () => {},
       }),
     );
-    expect(html).toContain("<td>7</td><td>0</td><td>19</td>");
+    expect(html).toContain("<td>7</td>");
+    expect(html).toContain("Out of stock");
+    expect(html).toContain("<td>19</td>");
     expect(html).toContain("Unlimited");
     expect(html).toContain("not revenue");
     expect(html).toContain("No attendees have spawned");

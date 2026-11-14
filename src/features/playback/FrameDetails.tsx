@@ -86,13 +86,18 @@ export function FrameDetails({
               {frame.vendors.map((state) => {
                 const value = vendorDisplay(state);
                 return (
-                  <tr key={state.vendorId}>
+                  <tr key={state.vendorId} data-vendor-id={state.vendorId}>
                     <th scope="row">
                       {festival.vendors.find((v) => v.id === state.vendorId)
                         ?.name ?? state.vendorId}
                     </th>
                     <td>{value.queue}</td>
-                    <td>{value.inventory}</td>
+                    <td>
+                      {value.inventory}
+                      {state.inventoryRemaining === 0 && (
+                        <span className="stockout-label">Out of stock</span>
+                      )}
+                    </td>
                     <td>{value.sales}</td>
                   </tr>
                 );
