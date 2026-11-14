@@ -147,7 +147,7 @@ export function prepareSimulationInput(
     errors.push("Frame interval must not be shorter than the simulation step.");
   const warnings = layout.editor.elements.length
     ? [
-        "Exits and custom areas are visual annotations only; SIM-01 receives no exit-routing or custom-area behavior.",
+        "Exits and custom areas are visual annotations only; the simulation receives no exit-routing or custom-area behavior.",
       ]
     : [];
   return errors.length
