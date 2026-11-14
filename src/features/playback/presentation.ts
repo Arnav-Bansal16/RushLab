@@ -26,7 +26,7 @@ export function attendeeDescription(
       : (festival.vendors.find(
           (vendor) => vendor.id === attendee.targetVendorId,
         )?.name ?? attendee.targetVendorId);
-  return `${attendee.id} · ${statusStyles[attendee.status].label} · ${target} · (${attendee.position.x.toFixed(1)}, ${attendee.position.y.toFixed(1)}) m`;
+  return `${attendee.id} · ${statusStyles[attendee.status].label} · ${target}`;
 }
 export function vendorDisplay(state: VendorFrameState) {
   return {

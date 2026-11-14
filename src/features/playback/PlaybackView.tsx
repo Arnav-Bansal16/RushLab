@@ -73,7 +73,7 @@ export function PlaybackControls({
         </select>
       </div>
       <label htmlFor="playback-timeline">
-        Playback timeline (simulation seconds)
+        Event timeline
       </label>
       <input
         id="playback-timeline"
@@ -88,10 +88,7 @@ export function PlaybackControls({
           onAction({ type: "scrub", timeSeconds: event.target.valueAsNumber })
         }
       />
-      <p>
-        Positions and statuses change only at recorded frames. Playback never
-        advances the engine.
-      </p>
+      <p>Pause to look around, or drag the timeline to revisit a moment.</p>
     </div>
   );
 }
@@ -135,17 +132,28 @@ export default function PlaybackView({
   festival,
   result,
   warnings = [],
+  autoPlay = false,
+  initialSpeed = 1,
 }: {
   festival: Festival;
   result: SimulationResult;
   warnings?: readonly string[];
+  autoPlay?: boolean;
+  initialSpeed?: number;
 }) {
   const frames = result.frames;
   const [state, dispatch] = useReducer(
     (current: ReturnType<typeof initialPlayback>, action: PlaybackAction) =>
       playbackReducer(frames, current, action),
     frames,
-    initialPlayback,
+    (savedFrames) => ({
+      ...initialPlayback(savedFrames),
+      playing:
+        autoPlay &&
+        savedFrames.length > 1 &&
+        savedFrames.at(-1)!.timeSeconds > savedFrames[0].timeSeconds,
+      speed: initialSpeed,
+    }),
   );
   const [inspectedId, setInspectedId] = useState("");
   useEffect(() => {
@@ -175,10 +183,8 @@ export default function PlaybackView({
         <p className="eyebrow">RECORDED SIMULATION</p>
         <h2 id="playback-heading">Playback · {festival.name}</h2>
         <p>
-          Snapshot: seed {result.settings.seed} ·{" "}
-          {result.settings.attendeeCount} attendees · requested duration{" "}
-          {result.settings.durationSeconds} s. The last recorded frame is {last}{" "}
-          s.
+          {result.settings.attendeeCount} guests · {festival.vendors.length}{" "}
+          vendors · {formatTime(last)} recorded preview
         </p>
       </header>
       <RunMessages errors={[]} warnings={warnings} />
@@ -191,8 +197,7 @@ export default function PlaybackView({
         <>
           <PlaybackCanvas festival={festival} frame={frame} />
           <p className="frame-time">
-            Recorded frame {index + 1} of {frames.length} ·{" "}
-            {frame.timeSeconds.toFixed(1)} s ·{" "}
+            {formatTime(frame.timeSeconds)} into the event ·{" "}
             {state.playing
               ? "Playing"
               : state.timeSeconds >= last
@@ -211,6 +216,14 @@ export default function PlaybackView({
         onAction={dispatch}
       />
       <StatusLegend />
+      <details className="playback-recording-details">
+        <summary>Recording details</summary>
+        <p>
+          Seed {result.settings.seed} · requested duration{" "}
+          {result.settings.durationSeconds} seconds · last recorded frame {last}{" "}
+          seconds · frame {index + 1} of {frames.length}.
+        </p>
+      </details>
       {frame && (
         <FrameDetails
           festival={festival}

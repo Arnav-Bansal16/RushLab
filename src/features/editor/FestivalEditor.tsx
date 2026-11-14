@@ -134,6 +134,9 @@ export default function FestivalEditor() {
           <span aria-hidden="true">↗</span>
         </button>
       </section>
+      <a className="playback-jump" href="#simulation-heading">
+        Preview guest movement ↓
+      </a>
       <section className="venue-toolbar" aria-label="Venue settings">
         <form
           onSubmit={(event) => {
@@ -368,37 +371,40 @@ export default function FestivalEditor() {
                   )
                 }
               />
-              <div className="field-pair">
-                {(["x", "y"] as const).map((axis) => (
-                  <div key={axis}>
-                    <label htmlFor={`position-${axis}`}>
-                      {axis.toUpperCase()} position (m)
-                    </label>
-                    <input
-                      id={`position-${axis}`}
-                      type="number"
-                      min="0"
-                      max={
-                        axis === "x"
-                          ? layout.boundsMeters.width - selected.size.width
-                          : layout.boundsMeters.height - selected.size.height
-                      }
-                      step="any"
-                      value={Number(selected.position[axis].toFixed(2))}
-                      onChange={(e) => {
-                        if (
-                          e.target.value !== "" &&
-                          Number.isFinite(e.target.valueAsNumber)
-                        )
-                          move(selected.id, {
-                            ...selected.position,
-                            [axis]: e.target.valueAsNumber,
-                          });
-                      }}
-                    />
-                  </div>
-                ))}
-              </div>
+              <details className="precise-position">
+                <summary>Precise positioning (optional)</summary>
+                <div className="field-pair">
+                  {(["x", "y"] as const).map((axis) => (
+                    <div key={axis}>
+                      <label htmlFor={`position-${axis}`}>
+                        {axis.toUpperCase()} position (m)
+                      </label>
+                      <input
+                        id={`position-${axis}`}
+                        type="number"
+                        min="0"
+                        max={
+                          axis === "x"
+                            ? layout.boundsMeters.width - selected.size.width
+                            : layout.boundsMeters.height - selected.size.height
+                        }
+                        step="any"
+                        value={Number(selected.position[axis].toFixed(2))}
+                        onChange={(e) => {
+                          if (
+                            e.target.value !== "" &&
+                            Number.isFinite(e.target.valueAsNumber)
+                          )
+                            move(selected.id, {
+                              ...selected.position,
+                              [axis]: e.target.valueAsNumber,
+                            });
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </details>
               {selected.kind !== "gate" && (
                 <div className="field-pair">
                   {(["width", "height"] as const).map((axis) => (

@@ -34,7 +34,7 @@ export function FrameDetails({
     frame.attendees[0];
   return (
     <div className="frame-details">
-      <h3>Vendor state · recorded frame</h3>
+      <h3>What is happening at each vendor</h3>
       <p>
         Queue counts include waiting attendees only. Completed purchases are a
         count, not revenue.
@@ -74,28 +74,30 @@ export function FrameDetails({
       ) : (
         <p>No vendor states in this frame.</p>
       )}
-      <h3>Inspect an attendee</h3>
-      {selected ? (
-        <>
-          <label htmlFor="playback-attendee">
-            Attendee in the recorded frame
-          </label>
-          <select
-            id="playback-attendee"
-            value={selected.id}
-            onChange={(event) => onInspect(event.target.value)}
-          >
-            {frame.attendees.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.id}
-              </option>
-            ))}
-          </select>
-          <p>{attendeeDescription(selected, festival)}</p>
-        </>
-      ) : (
-        <p>No attendees have spawned in this recorded frame.</p>
-      )}
+      <details className="attendee-details">
+        <summary>Follow an individual guest (optional)</summary>
+        {selected ? (
+          <>
+            <label htmlFor="playback-attendee">
+              Attendee in the recorded frame
+            </label>
+            <select
+              id="playback-attendee"
+              value={selected.id}
+              onChange={(event) => onInspect(event.target.value)}
+            >
+              {frame.attendees.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.id}
+                </option>
+              ))}
+            </select>
+            <p>{attendeeDescription(selected, festival)}</p>
+          </>
+        ) : (
+          <p>No attendees have spawned in this recorded frame.</p>
+        )}
+      </details>
     </div>
   );
 }

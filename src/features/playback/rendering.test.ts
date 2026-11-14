@@ -45,7 +45,7 @@ describe("playback rendering", () => {
     const html = renderToStaticMarkup(
       createElement(PlaybackView, { festival: demoFestival, result }),
     );
-    expect(html).toContain("Playback timeline");
+    expect(html).toContain("Event timeline");
     expect(html).toContain("160");
     expect(html).toContain("requested duration 180");
     expect(JSON.stringify(result)).toBe(before);
@@ -75,12 +75,7 @@ describe("playback rendering", () => {
         onAction: () => {},
       }),
     );
-    for (const label of [
-      "Play",
-      "Restart",
-      "Playback speed",
-      "Playback timeline",
-    ])
+    for (const label of ["Play", "Restart", "Playback speed", "Event timeline"])
       expect(controls).toContain(label);
     expect(controls).toContain('type="range"');
     expect(controls).toContain('aria-valuetext="0.0 simulation seconds"');

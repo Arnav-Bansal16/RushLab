@@ -66,3 +66,27 @@ SIM-01 currently supplies movement; nonzero commerce state depends on SIM-02.
 
 No production dependency was added. Browser automation used a temporary
 Playwright installation outside this repository and a temporary Chrome profile.
+
+## Organizer usability follow-up
+
+A one-click 8-vendor market example now runs 300 guests through the real public
+engine and opens playback automatically at 4× speed. It uses a separate planning
+layout and preserves the organizer's editor draft. The input layout is declared
+in vendorDemo.ts, outside the shared fixtures; no attendee frames are fabricated.
+
+The main run controls are guest count and preview length in minutes. Seed, step,
+recording interval, and walking speed remain in a closed Advanced settings panel.
+Recording diagnostics and individual-attendee selection are optional disclosures.
+Guest descriptions no longer show coordinates, and editor X/Y fields are inside
+optional precise-positioning controls. Map dragging remains available.
+
+The example is labeled as a movement preview. Queueing and purchase behavior
+remain engine-owned SIM-02 work; zero placeholder business values are not
+presented as evaluated business outcomes.
+
+Follow-up verification: 16 targeted playback tests and all 48 repository tests
+pass, including real-engine coverage of all eight vendor destinations. Isolated
+Chrome 157 browser smoke confirmed one-click autoplay, 4× speed, 300 final guest
+identities, eight vendor rows, preserved blank editor, hidden advanced controls,
+closed attendee inspection, and no horizontal overflow at 390 px. The example
+playback screenshot was visually inspected; no page exceptions occurred.

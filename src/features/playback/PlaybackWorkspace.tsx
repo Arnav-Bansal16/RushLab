@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { SimulationSettings } from "../../domain";
 import type { LayoutDocument } from "../editor/layout";
 import { executeRun, type ActiveRun } from "./run";
+import { createVendorDemo, vendorDemoSettings } from "./vendorDemo";
 import PlaybackView, { RunMessages } from "./PlaybackView";
 import "./playback.css";
 
@@ -14,14 +15,12 @@ const startingSettings: SimulationSettings = {
   frameIntervalSeconds: 1,
   walkingSpeedMetersPerSecond: 1.4,
 };
-const settingFields: {
+const advancedFields: {
   key: keyof SimulationSettings;
   label: string;
   step: string;
 }[] = [
   { key: "seed", label: "Random seed", step: "1" },
-  { key: "attendeeCount", label: "Attendee count (0–300)", step: "1" },
-  { key: "durationSeconds", label: "Duration (seconds)", step: "any" },
   { key: "stepSeconds", label: "Fixed simulation step (seconds)", step: "any" },
   {
     key: "frameIntervalSeconds",
@@ -39,11 +38,32 @@ export default function PlaybackWorkspace({
 }: {
   layout: LayoutDocument;
 }) {
-  const [active, setActive] = useState<{ run: ActiveRun; id: number } | null>(
-    null,
-  );
+  const [active, setActive] = useState<{
+    run: ActiveRun;
+    id: number;
+    example: boolean;
+  } | null>(null);
   const [errors, setErrors] = useState<string[]>([]),
     [warnings, setWarnings] = useState<string[]>([]);
+  function startRun(
+    source: LayoutDocument,
+    settings: SimulationSettings,
+    example = false,
+  ) {
+    const outcome = executeRun(source, settings);
+    if (outcome.ok) {
+      setErrors([]);
+      setWarnings([]);
+      setActive((previous) => ({
+        run: outcome.run,
+        id: (previous?.id ?? 0) + 1,
+        example,
+      }));
+    } else {
+      setErrors(outcome.errors);
+      setWarnings(outcome.warnings);
+    }
+  }
   return (
     <section
       className="playback-workspace"
@@ -51,10 +71,10 @@ export default function PlaybackWorkspace({
     >
       <header>
         <p className="eyebrow">RUN & REVIEW</p>
-        <h2 id="simulation-heading">Simulate this layout</h2>
+        <h2 id="simulation-heading">Watch your event in motion</h2>
         <p>
-          Run the current layout, then inspect its recorded attendee and vendor
-          state. Editing the layout afterward leaves this result unchanged.
+          Choose a guest count and preview length, then watch people move around
+          your layout. Or try a ready-made market with eight vendors.
         </p>
       </header>
       <form
@@ -65,41 +85,82 @@ export default function PlaybackWorkspace({
           event.preventDefault();
           const data = new FormData(event.currentTarget);
           const settings = { ...startingSettings };
-          for (const { key } of settingFields) {
+          for (const key of [
+            "attendeeCount",
+            ...advancedFields.map((field) => field.key),
+          ] as const) {
             const raw = String(data.get(key) ?? "");
             settings[key] = raw.trim() === "" ? NaN : Number(raw);
           }
-          const outcome = executeRun(layout, settings);
-          if (outcome.ok) {
-            setErrors([]);
-            setWarnings([]);
-            setActive((previous) => ({
-              run: outcome.run,
-              id: (previous?.id ?? 0) + 1,
-            }));
-          } else {
-            setErrors(outcome.errors);
-            setWarnings(outcome.warnings);
-          }
+          const duration = String(data.get("durationMinutes") ?? "");
+          settings.durationSeconds =
+            duration.trim() === "" ? NaN : Number(duration) * 60;
+          startRun(layout, settings);
         }}
       >
-        {settingFields.map((field) => (
-          <div key={field.key}>
-            <label htmlFor={`run-${field.key}`}>{field.label}</label>
-            <input
-              id={`run-${field.key}`}
-              name={field.key}
-              type="number"
-              step={field.step}
-              defaultValue={startingSettings[field.key]}
-              required
-            />
-          </div>
-        ))}
+        <div>
+          <label htmlFor="run-attendeeCount">Guests (up to 300)</label>
+          <input
+            id="run-attendeeCount"
+            name="attendeeCount"
+            type="number"
+            min="0"
+            max="300"
+            step="1"
+            defaultValue={startingSettings.attendeeCount}
+            required
+          />
+        </div>
+        <div>
+          <label htmlFor="run-durationMinutes">Preview length (minutes)</label>
+          <input
+            id="run-durationMinutes"
+            name="durationMinutes"
+            type="number"
+            min="0.1"
+            step="0.5"
+            defaultValue={startingSettings.durationSeconds / 60}
+            required
+          />
+        </div>
         <button type="submit" className="primary">
-          Run simulation
+          Run and watch my layout
         </button>
+        <details className="advanced-run-settings">
+          <summary>Advanced settings</summary>
+          <div>
+            {advancedFields.map((field) => (
+              <div key={field.key}>
+                <label htmlFor={`run-${field.key}`}>{field.label}</label>
+                <input
+                  id={`run-${field.key}`}
+                  name={field.key}
+                  type="number"
+                  step={field.step}
+                  defaultValue={startingSettings[field.key]}
+                  required
+                />
+              </div>
+            ))}
+          </div>
+        </details>
       </form>
+      <div className="vendor-demo-start">
+        <div>
+          <strong>See a busier event first</strong>
+          <p>
+            8 vendors · 2 entrances · 300 guests · a 3-minute preview. Your
+            editor layout stays unchanged.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="secondary"
+          onClick={() => startRun(createVendorDemo(), vendorDemoSettings, true)}
+        >
+          Try the 8-vendor demo
+        </button>
+      </div>
       <RunMessages errors={errors} warnings={warnings} />
       {errors.length > 0 && active && (
         <p className="prior-run-note">
@@ -108,19 +169,31 @@ export default function PlaybackWorkspace({
         </p>
       )}
       {active ? (
-        <PlaybackView
-          key={active.id}
-          festival={active.run.festivalSnapshot}
-          result={active.run.result}
-          warnings={active.run.warnings}
-        />
+        <div key={active.id}>
+          {active.example && (
+            <div className="demo-context" role="note">
+              <strong>Watching the 8-vendor example</strong>
+              <p>
+                Follow blue guests to the named stalls. Purple guests are
+                leaving a visit. The current engine previews movement; queueing
+                and purchase behavior will come from SIM-02.
+              </p>
+            </div>
+          )}
+          <PlaybackView
+            autoPlay
+            initialSpeed={active.example ? 4 : 1}
+            festival={active.run.festivalSnapshot}
+            result={active.run.result}
+            warnings={active.run.warnings}
+          />
+        </div>
       ) : (
         <div className="playback-empty" role="status">
           <h3>No simulation has run yet</h3>
           <p>
-            Add at least one entrance gate, choose settings, and select Run
-            simulation. No attendee movement or vendor state has been generated
-            yet.
+            Try the 8-vendor demo above, or add an entrance to your layout and
+            select Run and watch my layout.
           </p>
         </div>
       )}
