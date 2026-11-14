@@ -25,32 +25,55 @@
 - Behavior weights are finite non-negative relative tendencies, not guaranteed
   visit percentages. Missing destination types are removed before weights are
   normalized; no eligible destination produces a safe exit.
-- P0 itineraries contain at most three destinations. Vendors are the only
-  queued/service destinations; stage, restroom, seating, and first aid use
-  deterministic dwell intervals.
-- Each attendee has at most one vendor stop/purchase. Affordability uses current
-  budget and a completed purchase deducts its modeled amount.
+- P0 itineraries default to at most four destinations and are configurable from
+  one through six. Vendor, stage, and amenity stop limits each default to two
+  and are configurable from zero through the overall maximum. The total always
+  wins. `maximumVisitsPerDestination` defaults to one; a higher value explicitly
+  enables bounded revisits. Immediate duplicate destinations are forbidden.
+- Vendors are the only queued/service destinations; stage, restroom, seating,
+  and first aid use deterministic dwell intervals. Missing types are removed
+  before eligible-choice weights are renormalized.
+- Each vendor visit permits at most one purchase. An attendee may purchase from
+  multiple distinct vendors within the configured limits. Affordability is
+  checked against remaining budget before each selection; completion deducts
+  `vendor.averagePrice` exactly once and emits remaining budget and inventory.
 - Global dwell defaults live in the settings snapshot; optional per-location
   dwell overrides live in the festival snapshot. The engine resolves them once
   and emits events/frames; UI and analytics must not re-resolve them.
 - Queue tolerance is attendee base tolerance multiplied by the global settings
   multiplier. There is no per-vendor tolerance override in P0.
-- `schemaVersion: 1` remains required until CON-02 explicitly chooses and
-  documents either backwards-compatible additive defaults or a versioned
-  fixture migration. Feature branches must not make that decision implicitly.
+- CON-02 keeps `schemaVersion: 1` with backwards-compatible additive inputs:
+  missing `Festival.amenities` means an empty list and missing behavior settings
+  resolve to the documented defaults. Every new result snapshots fully resolved
+  settings and complete attendee profiles. Unknown schema versions still fail.
+- Each attendee profile is immutable and contains a stable choice-stream key,
+  seeded individual intent,
+  destination/vendor-category weights, price sensitivity, queue tolerance,
+  movement variation, stage/exploration/amenity/dwell/exit tendencies,
+  visit-duration tolerance, and initial budget. Runtime remaining budget is
+  state/event data and never mutates the profile.
+- Frames expose generic targets and travel/dwell/queue/exit state for modeled
+  human-like playback. Canonical visit, transition, exit, budget, inventory,
+  and business metrics remain event-derived.
 
 ## Shared fixtures
 
 - `demoFestival` is the reviewed baseline layout.
 - `demoSimulationResult` is coherent illustrative modeled output for that layout; it is not a forecast or benchmark.
+- `multiDestinationFestival`, `multiDestinationSimulationResult`, and its
+  compatible alternative demonstrate bounded multiple vendors/stages, an
+  intervening amenity, price-sensitive rejection, budget deduction, early exit,
+  and exact profile reuse. They are contract examples, not forecasts.
 - Every shared fixture must satisfy its public TypeScript contract, use unique IDs in the scopes above, and round-trip through `JSON.stringify`/`JSON.parse` without data loss.
 
 ## Fair comparison guard
 
-Baseline and alternative must match on seed, attendee count/profiles, stable
-intent assignments, duration, fixed step, walking speed, intent/destination
-weights, price elasticity, queue-tolerance multiplier, stop limit, dwell/roam
-ranges, per-location dwell overrides, and other non-layout demand assumptions.
+Baseline and alternative must match on seed, attendee IDs and complete profiles,
+initial budgets, spawn times, stable intent assignments, applicable choice
+streams, duration, fixed step, walking speed, intent/destination/category
+weights, price elasticity, queue-tolerance multiplier, overall/per-type/revisit
+limits, exit settings, dwell/roam ranges, per-location dwell overrides, and
+other non-layout demand assumptions.
 A mismatch must either reject comparison or populate
 `ScenarioComparison.warnings`; it must never silently present a fair-looking
 delta.
@@ -67,6 +90,11 @@ delta.
 | utilization          | service intervals divided by server-time capacity    |
 | stage/amenity visits | destination visit events                             |
 | stage/amenity dwell  | matched dwell start/end or run-end truncation events |
+| unique/repeat visits | ordered destination start events                     |
+| type transitions     | consecutive visit order per attendee                 |
+| exits / reasons      | typed `exit` events                                  |
+| remaining budget     | ordered `purchase` and `exit` events                 |
+| inventory            | ordered `purchase` / `stockout` events               |
 
 Tests must reconcile aggregates with the event ledger.
 

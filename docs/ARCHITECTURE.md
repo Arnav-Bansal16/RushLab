@@ -92,14 +92,17 @@ Movement begins with predefined path segments/waypoints and interpolation. Colli
 ### P0 attendee behavior expansion
 
 The initial vertical slice sends every attendee directly to one available
-vendor. The completed P0 must instead support a small, bounded intent model:
+vendor. The completed P0 must instead support a small, bounded intent model.
+The intent is an initial tendency, not a fixed two-stop script:
 
-- `stage_first`: stage, then an optional affordable vendor;
-- `vendor_first`: affordable vendor, then an optional stage or amenity;
-- `explorer`: one or two seeded in-bounds waypoints, then a destination;
-- `amenity_first`: restroom, seating, or first aid, then an optional vendor.
+- `stage_first`: initially favors stages;
+- `vendor_first`: initially favors affordable vendors;
+- `explorer`: may take one or two seeded in-bounds waypoints before choosing;
+- `amenity_first`: initially favors restroom, seating, or first aid.
 
-An attendee may visit at most three destinations. Stage and amenity visits use
+An attendee may visit multiple destinations, bounded by the overall and
+per-type limits below. The default overall maximum is four stops and the
+configurable range is one through six. Stage and amenity visits use
 deterministic dwell intervals. Vendors remain the only queued/service
 destinations in P0; restrooms, seating, and first aid are nonqueued dwell
 destinations. Gates and exits are routing points, paths are movement
@@ -129,18 +132,21 @@ For an affordable vendor, the minimum P0 choice formula is:
 priceFactor = exp(
   -settings.priceElasticity
   * attendee.priceSensitivity
-  * vendor.averagePrice / max(attendee.budget, 0.01)
+  * vendor.averagePrice / max(attendee.remainingBudget, 0.01)
 )
 
 vendorUtility = settings.vendorWeight
-  * attendee.categoryWeight
+  * attendee.vendorCategoryWeight
   * vendor.popularity
   * priceFactor
 ```
 
-A vendor priced above the attendee's remaining budget is ineligible. Purchase
-amount remains `vendor.averagePrice`. This is a transparent deterministic
-behavior rule, not an elasticity forecast.
+A vendor priced above the attendee's remaining budget is ineligible. The full
+SIM-03 utility may additionally include destination preference, predicted wait,
+travel time, novelty/repeat penalty, and a small seeded exploration term.
+Price elasticity is applied independently each time a vendor is considered.
+Purchase amount remains `vendor.averagePrice`. These are transparent modeled
+assumptions, not elasticity or revenue forecasts.
 
 Behavior assumptions belong in serializable simulation settings and are
 snapshotted with every run. The editor may expose advanced controls for intent
@@ -155,10 +161,16 @@ are transparent demo assumptions, not empirically calibrated behavior.
 
 | Parameter                         |                                 Default | Allowed P0 range / rule                                                    |
 | --------------------------------- | --------------------------------------: | -------------------------------------------------------------------------- |
-| maximum itinerary stops           |                                       3 | integer from 1 through 3                                                   |
+| maximum itinerary stops           |                                       4 | integer from 1 through 6                                                   |
+| maximum vendor stops              |                                       2 | integer from 0 through maximum itinerary stops                             |
+| maximum stage stops               |                                       2 | integer from 0 through maximum itinerary stops                             |
+| maximum amenity stops             |                                       2 | integer from 0 through maximum itinerary stops                             |
+| maximum visits per destination    |                                       1 | integer from 1 through maximum itinerary stops; values above 1 enable bounded revisits |
 | roaming waypoints for an explorer |                                       1 | integer from 0 through 2                                                   |
 | queue-tolerance multiplier        |                                     1.0 | finite value from 0 through 5                                              |
 | global price elasticity           |                                     1.0 | finite value from 0 through 10                                             |
+| seeded exit probability after stop|                                    0.08 | finite value from 0 through 1                                              |
+| minimum remaining visit time      |                              30 seconds | finite value from 0 through 3,600 seconds                                  |
 | any intent/destination weight     |                         as listed above | finite value from 0 through 10                                             |
 | vendor average price              |         per vendor, existing default 12 | finite display-currency value from 0 through 10,000                        |
 | vendor service time               | per vendor, existing default 75 seconds | finite value greater than 0 and at most 3,600 seconds                      |
@@ -188,17 +200,73 @@ destination type and tolerance represents attendee patience. Stage and amenity
 dwell is not queue waiting. ANA-01 continues to measure vendor wait from
 `queue_join` to `service_start`; ANA-03 measures dwell from destination events.
 
-Each P0 itinerary contains at most one vendor stop and therefore at most one
-purchase. The engine checks affordability against the attendee's current
-budget, records `vendor.averagePrice`, and deducts that amount after purchase.
-Repeat purchases and multi-vendor shopping are deferred. This keeps remaining
-budget semantics explicit without expanding the P0 event model.
+Each vendor visit permits at most one purchase. An attendee may purchase from
+multiple distinct vendors within the configured vendor-stop and overall-stop
+limits. The engine checks affordability before every vendor selection, records
+`vendor.averagePrice`, deducts it exactly once after a completed purchase, and
+emits the resulting remaining budget and inventory. Immediate duplicate
+destinations are forbidden. P0 does not revisit a physical destination unless
+`maximumVisitsPerDestination` is explicitly configured above one; revisits
+remain bounded by that value and the overall itinerary limit.
+
+Every `AttendeeProfile` stores stable, serializable individual parameters:
+choice-stream key, intent, destination-type and vendor-category weights, price sensitivity, queue
+tolerance, walking-speed variation, stage attraction, exploration tendency,
+amenity tendency, dwell-duration tendency, exit tendency, visit-duration
+tolerance, and immutable initial budget. Global settings are population
+defaults; profile generation applies deterministic seeded variation. All
+individual weights are finite, non-negative, and at most 10. Runtime remaining
+budget starts at `initialBudget`, changes only on completed purchases, and is
+reported in purchase/exit events and frames rather than mutating the profile.
+
+Baseline and alternative layouts reuse the exact attendee IDs, profiles,
+weights, budgets, spawn times, intent assignments, and applicable choice-stream
+inputs. A comparison must never generate fresh preferences.
+
+### Modeled human-like movement and bounded exit
+
+P0 describes this behavior as **modeled human-like movement**, never validated
+real human behavior or a forecast. SIM-03 implements the bounded sequence:
+
+```text
+enter
+→ choose from currently eligible destinations
+→ travel through world-space waypoints
+→ queue/service or dwell
+→ update remaining budget, visited destinations, and elapsed visit time
+→ choose another destination, roam, or exit
+→ repeat until an exit condition or configured limit is reached
+```
+
+Selection may consider individual preferences, attraction/popularity, price
+and remaining budget, predicted wait, travel distance/time, prior visits,
+elapsed festival time, completed stops, and seeded exploration. Missing
+destination types are removed and remaining eligible weights are renormalized.
+Movement never teleports; frames carry generic target plus choosing, walking,
+roaming, queueing, purchasing, dwelling, leaving, and exited state for playback.
+
+An attendee exits when the itinerary limit is reached, no eligible destination
+remains, remaining time is insufficient, budget blocks another desired
+purchase, queue tolerance is exceeded, the deterministic seeded post-stop exit
+decision succeeds, or the run ends. Exit decisions are seeded and bounded;
+there is no recursive itinerary construction or endless free roaming.
+
+Generic destination start/end events identify attendee, physical destination,
+destination type, visit order, repeat status, duration, and truncation. Together
+with typed exit reasons they support event-derived visits, unique visitors,
+repeat visits when enabled, completed/truncated dwell, visit order, transitions,
+and exits. Vendor queue/service/purchase events additionally reconcile queue
+membership, abandonment, inventory, spend, and remaining budget. Canonical
+metrics are derived from events, never frames.
 
 Because CP1 froze the original contracts, this expansion requires one joint
 CON-02 contract PR before implementation. CON-02 must keep the public
 `runSimulation(festival, settings)` signature but may extend the serializable
 Festival, settings, profile, frame, event, and result shapes needed for generic
-destinations and event-derived destination metrics.
+destinations and event-derived destination metrics. Schema version 1 treats
+these input additions as backwards-compatible: missing amenities mean an empty
+list and missing behavior settings resolve to the documented defaults. Every
+new `SimulationResult` snapshots the fully resolved settings.
 
 ## Deterministic seed strategy
 

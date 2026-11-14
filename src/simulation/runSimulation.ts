@@ -10,6 +10,7 @@ import type {
   SimulationSettings,
   Vendor,
 } from "../domain";
+import { resolveBehaviorSettings } from "../domain";
 import { deriveSimulationMetrics } from "../analytics/metrics";
 import { appendOrderedEvents } from "./events/order";
 import { clampToBounds, createRoute, moveToward } from "./movement";
@@ -83,7 +84,7 @@ function chooseVendor(
     choice.weightedIndex(
       available.map(
         (vendor) =>
-          profile.categoryWeights[vendor.category] *
+          profile.vendorCategoryWeights[vendor.category] *
           Math.max(0, vendor.popularity),
       ),
     )
@@ -391,8 +392,16 @@ function terminateOpenRequestsAtRunEnd(
 
 export const runSimulation: RunSimulation = (festival, settings) => {
   validateSettings(settings);
+  const resolvedSettings = {
+    ...settings,
+    behavior: resolveBehaviorSettings(settings.behavior),
+  };
   const streams = createNamedRandomStreams(settings.seed);
-  const attendeeProfiles = createAttendeeProfiles(festival, settings, streams);
+  const attendeeProfiles = createAttendeeProfiles(
+    festival,
+    resolvedSettings,
+    streams,
+  );
   const profileById = new Map(
     attendeeProfiles.map((profile) => [profile.id, profile]),
   );
@@ -522,10 +531,12 @@ export const runSimulation: RunSimulation = (festival, settings) => {
   return {
     schemaVersion: 1,
     festivalId: festival.id,
-    settings: { ...settings },
+    settings: resolvedSettings,
     attendeeProfiles,
     frames,
     events,
+    destinationMetrics: [],
+    destinationTransitions: [],
     ...aggregates,
   };
 };

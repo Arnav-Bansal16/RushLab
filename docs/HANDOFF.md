@@ -9,15 +9,17 @@
 - ANA-01 is implemented locally on `codex/ana-01-event-metrics` at commit
   `783fd45`; it has not been pushed or merged. It remains intentionally limited
   to canonical vendor metrics and totals from the SIM-02 event ledger.
-- The expanded P0 planning edits are documentation-only. No domain contract,
-  fixture, simulation behavior, UI behavior, dependency, commit, or push is
-  included in this planning change.
+- CON-02 now defines the additive schema-v1 behavior/destination contract,
+  resolved defaults, individual attendee parameters, generic visit/exit events,
+  destination result shapes, and reviewed multi-destination fixtures. SIM-03,
+  ANA-03, and the advanced UI controls remain separate implementation tasks.
 
-The present engine sends an attendee to one available vendor whenever a vendor
-exists. Budget, price sensitivity, exploration, and stage attraction are
-present in data but do not yet produce price elasticity, stage-first behavior,
-or roaming. Restroom, seating, first aid, parking, exits, and custom elements
-are currently editor-only.
+The present SIM-02 engine still sends an attendee to one available vendor
+whenever a vendor exists. It now snapshots resolved behavior settings and
+complete deterministic profiles, but does not yet use them to produce price
+elasticity, bounded multi-stop choice, stage-first behavior, amenities, or
+roaming. The multi-destination result fixture demonstrates the approved ledger;
+it is not a claim that SIM-03 is already implemented.
 
 ## Approved expanded P0 shape
 
@@ -31,15 +33,20 @@ Keep the addition compact:
 P0 supports stage-first, vendor-first, explorer, and amenity-first intents;
 editable vendor price; affordable price-sensitive vendor choice; bounded
 roaming; deterministic stage/amenity dwell; and a small advanced-settings
-panel. Each attendee has at most three destinations. Vendors remain the only
-queued/service destinations. Nonvendor amenities do not model congestion,
-staffing, medical incidents, or service queues.
+panel. Each attendee defaults to at most four destinations, configurable from
+one through six, with vendor, stage, and amenity caps defaulting to two each.
+Physical destinations are distinct by default; an explicit setting may enable
+bounded revisits. Vendors remain the only queued/service destinations.
+Nonvendor amenities do not model congestion, staffing, medical incidents, or
+service queues.
 
 The P0 parameter source of truth is `docs/ARCHITECTURE.md`: stage 30–120
 seconds, restroom 45–120, seating 30–180, and first aid 60–300, with optional
 per-location overrides. Attendee queue tolerance is separately multiplied by a
-global 0–5 setting. Each attendee has at most one vendor stop/purchase; vendor
-price and service time remain per-vendor inputs.
+global 0–5 setting. Each vendor visit permits at most one purchase; an attendee
+may visit and purchase from multiple affordable vendors within the configured
+vendor and overall limits. Vendor price and service time remain per-vendor
+inputs, and every completed purchase deducts from remaining budget exactly once.
 
 The exact default weights, price formula, destination eligibility, and scope
 limits are in `docs/ARCHITECTURE.md`. Task ownership and acceptance criteria are
@@ -70,8 +77,8 @@ composition:
 - add `averagePrice` to vendor creation and editing;
 - expose vendor service time and optional stage/amenity dwell overrides;
 - expose only the approved advanced settings: intent/destination weights,
-  maximum stops, dwell/roam ranges, queue-tolerance multiplier, and price
-  elasticity;
+  overall/per-type/revisit limits, dwell/roam ranges, deterministic exit
+  settings, queue-tolerance multiplier, and price elasticity;
 - validate finite non-negative values and the all-zero eligible-weight case;
 - snapshot festival and settings before each run;
 - display behavior assumptions as modeled inputs; and
@@ -83,14 +90,20 @@ composition:
 After CON-02 merges, implement SIM-03 under `src/simulation/**`:
 
 - assign stable intent independently from movement draws;
-- build at most three valid stops;
-- permit at most one vendor stop, deduct one completed purchase from budget,
-  and keep dwell separate from queue waiting;
+- build bounded itineraries with default four stops, configurable from one
+  through six, while enforcing every per-type and per-destination cap;
+- prevent immediate duplicate destinations and revisit a physical destination
+  only when the explicit bounded revisit setting permits it;
+- permit multiple distinct affordable vendor stops, at most one purchase per
+  vendor visit, deduct each completed purchase from remaining budget, and keep
+  dwell separate from queue waiting;
 - apply the documented affordability and price formula;
 - select stages by attraction and supported amenities by configured weight;
 - resolve type-level dwell defaults and optional per-location overrides once;
 - generate one or two seeded in-bounds waypoints for explorers;
 - emit the approved destination/dwell events and frame targets;
+- emit typed bounded exits for limits, eligibility, time, budget, queue
+  tolerance, seeded post-stop decisions, and run end;
 - preserve SIM-02 queue, inventory, purchase, abandonment, and ordering rules;
   and
 - keep every output deterministic, immutable, and JSON-serializable.

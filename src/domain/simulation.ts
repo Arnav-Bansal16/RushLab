@@ -1,10 +1,18 @@
 import type {
   AttendeeStatus,
+  DestinationTarget,
+  DestinationType,
   Festival,
   Id,
   Point,
-  VendorCategory,
 } from "./model";
+import type {
+  AttendeeIntent,
+  BehaviorSettings,
+  BehaviorSettingsInput,
+  DestinationTypeWeights,
+  VendorCategoryWeights,
+} from "./behavior";
 
 export interface SimulationSettings {
   seed: number;
@@ -13,17 +21,35 @@ export interface SimulationSettings {
   stepSeconds: number;
   frameIntervalSeconds: number;
   walkingSpeedMetersPerSecond: number;
+  /** Optional on schema-v1 input; every SimulationResult contains resolved defaults. */
+  behavior?: BehaviorSettingsInput;
 }
+
+export type SimulationSettingsSnapshot = Omit<
+  SimulationSettings,
+  "behavior"
+> & { behavior: BehaviorSettings };
 
 export interface AttendeeProfile {
   id: Id;
+  /** Stable key used to derive per-attendee choice draws across layouts. */
+  choiceStreamKey: string;
   entranceId: Id;
   spawnTimeSeconds: number;
-  budget: number;
-  categoryWeights: Record<VendorCategory, number>;
+  intent: AttendeeIntent;
+  destinationTypeWeights: DestinationTypeWeights;
+  vendorCategoryWeights: VendorCategoryWeights;
   priceSensitivity: number;
   queueToleranceSeconds: number;
-  exploration: number;
+  walkingSpeedMultiplier: number;
+  stageAttractionPreference: number;
+  explorationTendency: number;
+  amenityTendency: number;
+  dwellDurationTendency: number;
+  exitTendency: number;
+  visitDurationToleranceSeconds: number;
+  /** Immutable starting amount; runtime remaining budget is never written back. */
+  initialBudget: number;
 }
 
 export interface AttendeeFrameState {
@@ -31,6 +57,10 @@ export interface AttendeeFrameState {
   position: Point;
   status: AttendeeStatus;
   targetVendorId: Id | null;
+  /** Generic target used by multi-destination playback. */
+  target?: DestinationTarget | null;
+  completedStops?: number;
+  remainingBudget?: number;
 }
 export interface VendorFrameState {
   vendorId: Id;
@@ -43,6 +73,15 @@ export interface SimulationFrame {
   attendees: AttendeeFrameState[];
   vendors: VendorFrameState[];
 }
+
+export type ExitReason =
+  | "itinerary_limit"
+  | "no_eligible_destination"
+  | "insufficient_time"
+  | "insufficient_budget"
+  | "queue_tolerance_exceeded"
+  | "seeded_exit_decision"
+  | "run_ended";
 
 export type SimulationEvent =
   | { type: "spawn"; timeSeconds: number; attendeeId: Id; entranceId: Id }
@@ -61,9 +100,37 @@ export type SimulationEvent =
       attendeeId: Id;
       vendorId: Id;
       amount: number;
+      remainingBudget?: number;
+      inventoryRemaining?: number | null;
+    }
+  | {
+      type: "destination_visit_start";
+      timeSeconds: number;
+      attendeeId: Id;
+      destinationId: Id;
+      destinationType: DestinationType;
+      visitOrder: number;
+      isRepeatVisit: boolean;
+    }
+  | {
+      type: "destination_visit_end";
+      timeSeconds: number;
+      attendeeId: Id;
+      destinationId: Id;
+      destinationType: DestinationType;
+      visitOrder: number;
+      durationSeconds: number;
+      truncated: boolean;
     }
   | { type: "stockout"; timeSeconds: number; vendorId: Id }
-  | { type: "exit"; timeSeconds: number; attendeeId: Id };
+  | {
+      type: "exit";
+      timeSeconds: number;
+      attendeeId: Id;
+      reason?: ExitReason;
+      completedStops?: number;
+      remainingBudget?: number;
+    };
 
 export interface VendorMetrics {
   vendorId: Id;
@@ -78,14 +145,33 @@ export interface VendorMetrics {
   stockoutTimeSeconds: number | null;
 }
 
+export interface DestinationMetrics {
+  destinationId: Id;
+  destinationType: DestinationType;
+  visits: number;
+  uniqueVisitors: number;
+  repeatVisits: number;
+  completedDwellSeconds: number;
+  truncatedDwellSeconds: number;
+}
+
+export interface DestinationTransitionMetrics {
+  fromType: DestinationType;
+  toType: DestinationType;
+  count: number;
+}
+
 export interface SimulationResult {
   schemaVersion: 1;
   festivalId: Id;
-  settings: SimulationSettings;
+  settings: SimulationSettingsSnapshot;
   attendeeProfiles: AttendeeProfile[];
   frames: SimulationFrame[];
   events: SimulationEvent[];
   vendorMetrics: VendorMetrics[];
+  /** ANA-03 derives these from destination events, never from frames. */
+  destinationMetrics: DestinationMetrics[];
+  destinationTransitions: DestinationTransitionMetrics[];
   totals: {
     purchases: number;
     revenue: number;

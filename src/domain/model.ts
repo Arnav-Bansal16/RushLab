@@ -23,6 +23,24 @@ export interface Stage {
   position: Point;
   size: Size;
   attraction: number;
+  dwellDurationOverrideSeconds?: DwellDurationRange;
+}
+
+export interface DwellDurationRange {
+  minimum: number;
+  maximum: number;
+}
+
+export type AmenityType = "restroom" | "seating" | "first_aid";
+
+export interface Amenity {
+  id: Id;
+  name: string;
+  type: AmenityType;
+  position: Point;
+  size: Size;
+  attraction: number;
+  dwellDurationOverrideSeconds?: DwellDurationRange;
 }
 export interface PathSegment {
   id: Id;
@@ -61,10 +79,27 @@ export interface Festival {
   paths: PathSegment[];
   obstacles: Obstacle[];
   vendors: Vendor[];
+  /** Additive schema-v1 field. Missing is interpreted as an empty list. */
+  amenities?: Amenity[];
+}
+
+export type DestinationType = "stage" | "vendor" | AmenityType;
+
+export interface DestinationTarget {
+  destinationId: Id;
+  destinationType: DestinationType;
 }
 
 export type AttendeeStatus =
-  "entering" | "walking" | "queued" | "purchasing" | "leaving" | "exited";
+  | "entering"
+  | "choosing"
+  | "walking"
+  | "roaming"
+  | "queued"
+  | "purchasing"
+  | "dwelling"
+  | "leaving"
+  | "exited";
 
 export interface AttendeePreferences {
   categoryWeights: Record<VendorCategory, number>;

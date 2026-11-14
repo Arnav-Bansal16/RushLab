@@ -93,22 +93,25 @@ Do not hide behavior or contract work inside those existing task branches.
 
 - **Owner / agent:** Joint; integration reviewer.
 - **Files:** `src/domain/**`, `src/fixtures/**`, `docs/ARCHITECTURE.md`,
-  `docs/INTEGRATION.md`, `docs/TESTING.md` only.
+  `docs/INTEGRATION.md`, `docs/TESTING.md`, and this authorized task update.
 - **Dependencies / inputs:** Green SIM-02/UI-02/ANA-01 vertical slice and the
   approved P0 behavior rules in `docs/ARCHITECTURE.md`.
 - **Output:** Serializable contracts for simulation-aware amenities, behavior
   settings, stable attendee intent, generic playback targets/visits, and
   destination metrics while preserving the public `RunSimulation` signature.
-  Include the exact defaults, limits, type-level dwell ranges, per-location
-  dwell overrides, effective queue-tolerance rule, and one-purchase limit from
-  `docs/ARCHITECTURE.md`.
+  Include the exact defaults, overall/per-type/revisit limits, individual
+  profile parameters, type-level dwell ranges, per-location dwell overrides,
+  effective queue-tolerance rule, multi-vendor budget semantics, typed exits,
+  and generic visit events from `docs/ARCHITECTURE.md`.
 - **Acceptance:** existing fixtures migrate cleanly; defaults reproduce a
   valid run; schema-version/backwards-compatibility treatment is explicit; all
   IDs/weights/ranges validate; JSON round-trip passes; both developers approve
   before dependent coding begins.
 - **Tests:** contract validation, defaults, zero/missing destinations, and JSON
-  round-trip.
-- **Effort:** 1.5–2.5 hours.
+  round-trip; bounded fixture visits, purchases/budgets/inventory, price factor,
+  early exit, profile reuse, determinism, stream independence, and comparison
+  compatibility.
+- **Effort:** 2.5–4 hours.
 - **Checkpoint:** CP2B behavior contract freeze.
 
 ### SIM-03 — bounded attendee behavior and price elasticity
@@ -119,20 +122,24 @@ Do not hide behavior or contract work inside those existing task branches.
 - **Dependencies / inputs:** CON-02, SIM-02, and the exact defaults/formula in
   `docs/ARCHITECTURE.md`.
 - **Output:** Stable stage-first, vendor-first, explorer, and amenity-first
-  intents; at most three stops; stage/amenity dwell; one or two seeded roaming
-  waypoints; affordable price-sensitive vendor choice; destination visit
-  events; resolved dwell intervals; budget deduction for at most one purchase;
-  and safe exit fallback.
+  intents; bounded one-to-six-stop itineraries with default four and default
+  per-type maximum two; stage/amenity dwell; one or two seeded roaming
+  waypoints; affordable price-sensitive vendor choice; distinct destinations
+  by default; destination visit events; resolved dwell intervals; budget
+  deduction across multiple vendor purchases; and typed safe exit fallbacks.
 - **Acceptance:** no unbounded roaming; vendors above remaining budget are
   never selected; price changes can change modeled demand; stage and amenity
   destinations receive visits; vendors remain the only P0 queues; existing
-  queue/inventory/event invariants remain green; no `Math.random()`.
+  queue/inventory/event invariants remain green; no immediate duplicate
+  destinations, recursion, unbounded roaming, or `Math.random()`.
 - **Tests:** intent mix/defaults, price sensitivity, unaffordable vendors,
   post-purchase budget, stage attraction, default and overridden dwell ranges,
-  queue-tolerance multiplier boundaries, bounds, maximum stops/one-vendor-stop,
-  missing destination types, same-seed equality, stream independence, and all
-  SIM-02 conservation tests.
-- **Effort:** 4–6 hours.
+  queue-tolerance multiplier boundaries, bounds, overall/per-type/revisit
+  limits, multiple purchases and exact remaining budget, multiple-stage
+  eligibility, early exits, missing destination types, same-seed equality,
+  stream independence, comparison compatibility, and all SIM-02 conservation
+  tests.
+- **Effort:** 5–8 hours.
 - **Checkpoint:** CP3B behavior slice.
 
 ### ANA-03 — destination visit and dwell metrics
@@ -160,7 +167,8 @@ Do not hide behavior or contract work inside those existing task branches.
 - **Dependencies / inputs:** CON-02; may proceed in parallel with SIM-03 after
   the contract merges.
 - **Output:** Vendor `averagePrice` and `serviceTimeSeconds` creation/editing,
-  plus advanced controls for intent/destination weights, maximum stops,
+  plus advanced controls for intent/destination weights, overall/per-type and
+  bounded-revisit maximum stops,
   type-level dwell/roaming ranges, optional per-stage/per-amenity dwell
   overrides, queue-tolerance multiplier, and global price elasticity. Playback
   renders generic targets/dwelling from frames without calculating behavior.
@@ -209,9 +217,10 @@ Do not hide behavior or contract work inside those existing task branches.
 
 ## Time and risk budget
 
-The behavior expansion adds approximately 10–16 focused person-hours across two
-developers. Protect the weekend scope by limiting attendees to three stops,
-keeping nonvendor amenities unqueued, using bounded seeded waypoints instead of
-free random walks, and exposing only the documented advanced settings. Highest
-risks are contract churn, frame payload/rendering, and unfair comparisons;
-mitigate with CON-02, 1 Hz frames, named streams, and shared profiles/intents.
+The behavior expansion adds approximately 12–20 focused person-hours across two
+developers. Protect the weekend scope with a default four-stop limit (hard
+configurable maximum six), per-type caps, no revisits by default, nonvendor
+amenities that remain unqueued, and bounded seeded waypoints instead of free
+random walks. Highest risks are contract churn, frame payload/rendering, and
+unfair comparisons; mitigate with CON-02, 1 Hz frames, named streams, and
+shared profiles/intents/preferences/budgets.

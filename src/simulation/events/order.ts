@@ -2,12 +2,14 @@ import type { SimulationEvent } from "../../domain";
 
 const EVENT_PRIORITY: Record<SimulationEvent["type"], number> = {
   spawn: 0,
-  purchase: 1,
-  stockout: 2,
-  queue_abandon: 3,
-  queue_join: 4,
-  service_start: 5,
-  exit: 6,
+  destination_visit_start: 1,
+  purchase: 2,
+  stockout: 3,
+  queue_abandon: 4,
+  queue_join: 5,
+  service_start: 6,
+  destination_visit_end: 7,
+  exit: 8,
 };
 
 function vendorId(event: SimulationEvent): string {
