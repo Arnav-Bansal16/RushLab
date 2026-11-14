@@ -120,7 +120,9 @@ describe("playback rendering", () => {
         }),
       ),
     );
-    expect(circles.match(/data-person="attendee-person"/g)).toHaveLength(6);
+    expect(circles.match(/data-person="attendee-person"/g)).toHaveLength(
+      statuses.length,
+    );
     for (const style of Object.values(statusStyles))
       expect(circles).toContain(style.color);
     for (const person of frame.attendees) {
@@ -132,7 +134,7 @@ describe("playback rendering", () => {
           onInspect: () => {},
         }),
       );
-      expect(detail).toContain("No target vendor");
+      expect(detail).toContain("No destination");
       expect(detail).toContain(statusStyles[person.status].label);
     }
     expect(renderToStaticMarkup(createElement(StatusLegend))).toContain(

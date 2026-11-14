@@ -16,7 +16,7 @@ const startingSettings: SimulationSettings = {
   walkingSpeedMetersPerSecond: 1.4,
 };
 const advancedFields: {
-  key: keyof SimulationSettings;
+  key: Exclude<keyof SimulationSettings, "behavior">;
   label: string;
   step: string;
 }[] = [
