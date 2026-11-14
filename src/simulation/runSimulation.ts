@@ -10,8 +10,8 @@ import type {
   SimulationSettings,
   Vendor,
 } from "../domain";
+import { deriveSimulationMetrics } from "../analytics/metrics";
 import { appendOrderedEvents } from "./events/order";
-import { reduceSimulationEvents } from "./events/reduce";
 import { clampToBounds, createRoute, moveToward } from "./movement";
 import { createAttendeeProfiles } from "./profiles";
 import {
@@ -518,7 +518,7 @@ export const runSimulation: RunSimulation = (festival, settings) => {
     }
   }
 
-  const aggregates = reduceSimulationEvents(events, vendors, settings);
+  const aggregates = deriveSimulationMetrics(events, vendors, settings);
   return {
     schemaVersion: 1,
     festivalId: festival.id,
