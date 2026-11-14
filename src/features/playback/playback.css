@@ -270,3 +270,27 @@
   text-decoration: underline;
   text-underline-offset: 4px;
 }
+.vendor-live-heading {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.vendor-live-heading h3 {
+  margin: 0;
+}
+.vendor-live-badge {
+  font-size: 11px;
+  padding: 4px 9px;
+  border-radius: 20px;
+  color: #65765f;
+  background: #eff2ec;
+}
+.vendor-live-badge.is-playing {
+  color: #246341;
+  background: #e7f4e7;
+}
+.vendor-frame-update {
+  font-size: 11px;
+  color: #687c60;
+}

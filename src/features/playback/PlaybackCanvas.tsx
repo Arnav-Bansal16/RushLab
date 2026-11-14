@@ -1,9 +1,46 @@
 "use client";
 import { memo, useEffect, useRef, useState } from "react";
-import { Stage, Layer, Rect, Line, Text, Circle, Group } from "react-konva";
+import {
+  Stage,
+  Layer,
+  Rect,
+  Line,
+  Text,
+  Circle,
+  Group,
+  Shape,
+} from "react-konva";
+import type Konva from "konva";
 import type { Festival, SimulationFrame } from "../../domain";
 import { fitViewport, metersToPixels, type Viewport } from "../editor/geometry";
 import { statusStyles } from "./presentation";
+
+/** A head, torso, arms and legs, drawn as one lightweight canvas shape per guest. */
+export function drawPerson(context: Konva.Context, shape: Konva.Shape) {
+  context.beginPath();
+  context.arc(0, -4, 1.8, 0, Math.PI * 2);
+  context.closePath();
+  context.moveTo(-1.6, -1.5);
+  for (const [x, y] of [
+    [1.6, -1.5],
+    [3, 2],
+    [1.8, 2.5],
+    [1.2, 0.5],
+    [1.2, 3],
+    [2, 6],
+    [0.3, 6],
+    [0, 3],
+    [-0.3, 6],
+    [-2, 6],
+    [-1.2, 3],
+    [-1.2, 0.5],
+    [-1.8, 2.5],
+    [-3, 2],
+  ])
+    context.lineTo(x, y);
+  context.closePath();
+  context.fillStrokeShape(shape);
+}
 
 export function AttendeeMarks({
   frame,
@@ -15,13 +52,17 @@ export function AttendeeMarks({
   return (
     <>
       {frame.attendees.map((person) => (
-        <Circle
+        <Shape
           key={person.id}
+          name="attendee-person"
           {...metersToPixels(person.position, transform)}
-          radius={Math.max(2, transform.scale * 0.45)}
+          sceneFunc={drawPerson}
+          scaleX={Math.max(0.65, Math.min(1.15, transform.scale * 0.18))}
+          scaleY={Math.max(0.65, Math.min(1.15, transform.scale * 0.18))}
           fill={statusStyles[person.status].color}
           opacity={statusStyles[person.status].opacity}
           listening={false}
+          perfectDrawEnabled={false}
         />
       ))}
     </>

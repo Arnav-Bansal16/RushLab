@@ -8,19 +8,18 @@ import { fitViewport } from "../editor/geometry";
 
 vi.mock("next/dynamic", () => ({ default: () => () => null }));
 vi.mock("react-konva", () => ({
-  Circle: (props: {
-    x: number;
-    y: number;
-    radius: number;
+  Shape: (props: {
     fill: string;
     opacity: number;
+    x: number;
+    y: number;
+    name: string;
   }) =>
-    createElement("circle", {
-      cx: props.x,
-      cy: props.y,
-      r: props.radius,
+    createElement("path", {
       fill: props.fill,
       opacity: props.opacity,
+      "data-person": props.name,
+      transform: `translate(${props.x} ${props.y})`,
     }),
 }));
 import PlaybackView, { PlaybackControls, RunMessages } from "./PlaybackView";
@@ -119,7 +118,7 @@ describe("playback rendering", () => {
         }),
       ),
     );
-    expect(circles.match(/<circle/g)).toHaveLength(6);
+    expect(circles.match(/data-person="attendee-person"/g)).toHaveLength(6);
     for (const style of Object.values(statusStyles))
       expect(circles).toContain(style.color);
     for (const person of frame.attendees) {
@@ -191,4 +190,42 @@ describe("playback rendering", () => {
       ),
     ).toContain("Keep this warning");
   });
+});
+
+it("updates vendor values and their timestamp from consecutive playback frames", () => {
+  const base = {
+    vendorId: "vendor-tacos",
+    queueLength: 2,
+    inventoryRemaining: 10,
+    cumulativeSales: 0,
+  };
+  const first: SimulationFrame = {
+    timeSeconds: 10,
+    attendees: [],
+    vendors: [base],
+  };
+  const next: SimulationFrame = {
+    timeSeconds: 20,
+    attendees: [],
+    vendors: [
+      { ...base, queueLength: 5, inventoryRemaining: 7, cumulativeSales: 3 },
+    ],
+  };
+  const render = (frame: SimulationFrame, playing: boolean) =>
+    renderToStaticMarkup(
+      createElement(FrameDetails, {
+        festival: demoFestival,
+        frame,
+        playing,
+        inspectedId: "",
+        onInspect: () => {},
+      }),
+    );
+  expect(render(first, true)).toContain("<td>2</td><td>10</td><td>0</td>");
+  const updated = render(next, true);
+  expect(updated).toContain("<td>5</td><td>7</td><td>3</td>");
+  expect(updated).toContain("0:20");
+  expect(updated).toContain("Live playback");
+  expect(render(next, false)).toContain("Paused");
+  expect(first.vendors[0]).toEqual(base);
 });

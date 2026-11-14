@@ -90,3 +90,22 @@ Chrome 157 browser smoke confirmed one-click autoplay, 4× speed, 300 final gues
 identities, eight vendor rows, preserved blank editor, hidden advanced controls,
 closed attendee inspection, and no horizontal overflow at 390 px. The example
 playback screenshot was visually inspected; no page exceptions occurred.
+
+## Person markers and live vendor-panel follow-up
+
+Attendees now render as one lightweight Konva silhouette each (head, torso,
+arms and legs), with existing status colors and faded exited identities. No
+positions, targets, or states are changed by the visual replacement.
+
+The vendor panel receives the same selected frame as the map, shows that
+frame's timestamp, and labels live/paused playback. Consecutive-frame rendering
+tests verify that waiting, inventory, and completed purchases update verbatim.
+Browser smoke confirmed timestamps advance while playing, stay fixed while
+paused, and follow scrubbing. Business values legitimately stay unchanged when
+the current engine records no queue/purchase changes; SIM-02 owns those changes.
+
+Follow-up verification: 17 targeted tests, 49 total tests, lint, typecheck, and
+production build pass. A 300-person redraw check in the same isolated Chrome
+setup measured 60.00 FPS; the screenshot was visually inspected and no page
+exceptions occurred. This remains a local headless measurement, not a promise
+for other machines or browsers.

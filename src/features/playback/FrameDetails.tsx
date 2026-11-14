@@ -1,3 +1,4 @@
+import { formatTime } from "./controller";
 import type { Festival, SimulationFrame } from "../../domain";
 import {
   attendeeDescription,
@@ -10,7 +11,19 @@ export function StatusLegend() {
     <ul className="status-legend" aria-label="Attendee status legend">
       {Object.entries(statusStyles).map(([key, style]) => (
         <li key={key}>
-          <i style={{ background: style.color, opacity: style.opacity }} />
+          <svg
+            width="10"
+            height="15"
+            viewBox="-4 -7 8 14"
+            aria-hidden="true"
+            style={{ color: style.color, opacity: style.opacity }}
+          >
+            <circle cx="0" cy="-4" r="1.8" fill="currentColor" />
+            <path
+              d="M-1.6 -1.5 H1.6 L3 2 L1.8 2.5 L1.2 .5 V3 L2 6 H.3 L0 3 L-.3 6 H-2 L-1.2 3 V.5 L-1.8 2.5 L-3 2 Z"
+              fill="currentColor"
+            />
+          </svg>
           {style.label}
           {key === "exited" ? " (faded)" : ""}
         </li>
@@ -23,18 +36,34 @@ export function FrameDetails({
   frame,
   inspectedId,
   onInspect,
+  playing = false,
 }: {
   festival: Festival;
   frame: SimulationFrame;
   inspectedId: string;
   onInspect: (id: string) => void;
+  playing?: boolean;
 }) {
   const selected =
     frame.attendees.find((item) => item.id === inspectedId) ??
     frame.attendees[0];
   return (
     <div className="frame-details">
-      <h3>What is happening at each vendor</h3>
+      <div className="vendor-live-heading">
+        <h3>What is happening at each vendor</h3>
+        <span
+          className={
+            playing ? "vendor-live-badge is-playing" : "vendor-live-badge"
+          }
+          role="status"
+        >
+          {playing ? "Live playback" : "Paused"}
+        </span>
+      </div>
+      <p className="vendor-frame-update">
+        Showing vendor activity at {formatTime(frame.timeSeconds)}. Values
+        follow the map as playback runs or you move the timeline.
+      </p>
       <p>
         Queue counts include waiting attendees only. Completed purchases are a
         count, not revenue.

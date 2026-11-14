@@ -72,9 +72,7 @@ export function PlaybackControls({
           ))}
         </select>
       </div>
-      <label htmlFor="playback-timeline">
-        Event timeline
-      </label>
+      <label htmlFor="playback-timeline">Event timeline</label>
       <input
         id="playback-timeline"
         type="range"
@@ -228,6 +226,7 @@ export default function PlaybackView({
         <FrameDetails
           festival={festival}
           frame={frame}
+          playing={state.playing}
           inspectedId={inspectedId}
           onInspect={setInspectedId}
         />
