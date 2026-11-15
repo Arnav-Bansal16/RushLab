@@ -10,8 +10,10 @@ export function sampleDwellDurationSeconds(
   const normalizedTendency = Math.min(1, Math.max(0, tendency - 0.5));
   const fraction = (choice.float() + normalizedTendency) / 2;
   const modeled = range.minimum + (range.maximum - range.minimum) * fraction;
-  return Math.max(
-    0,
-    Math.ceil((modeled - Number.EPSILON) / stepSeconds) * stepSeconds,
+  const fixedStepDuration =
+    Math.ceil((modeled - Number.EPSILON) / stepSeconds) * stepSeconds;
+  return Math.min(
+    range.maximum,
+    Math.max(range.minimum, fixedStepDuration),
   );
 }

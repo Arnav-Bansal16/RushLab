@@ -345,6 +345,35 @@ describe("runSimulation SIM-03 behavior", () => {
         ({ truncated: wasTruncated }) => wasTruncated,
       ),
     ).toBe(true);
+
+    const subStep = runSimulation(
+      source,
+      settings({
+        attendeeCount: 30,
+        durationSeconds: 20,
+        behavior: {
+          maximumItineraryStops: 1,
+          maximumVendorStops: 0,
+          maximumStageStops: 1,
+          maximumAmenityStops: 0,
+          minimumRemainingTimeSeconds: 0,
+          deterministicExitProbabilityAfterStop: 0,
+          dwellDurationSeconds: { stage: { minimum: 0.1, maximum: 0.2 } },
+        },
+      }),
+    );
+    const completedSubStepDwells = eventsOfType(
+      subStep,
+      "destination_visit_end",
+    ).filter(({ truncated: wasTruncated }) => !wasTruncated);
+    expect(completedSubStepDwells.length).toBeGreaterThan(0);
+    expect(
+      completedSubStepDwells.every(
+        ({ durationSeconds }) =>
+          durationSeconds >= 0.1 - Number.EPSILON &&
+          durationSeconds <= 0.2 + Number.EPSILON,
+      ),
+    ).toBe(true);
   });
 
   it("applies queue tolerance multiplier boundaries zero and five", () => {
@@ -394,6 +423,92 @@ describe("runSimulation SIM-03 behavior", () => {
     );
     expect(eventsOfType(five, "queue_join").length).toBeGreaterThan(0);
     expect(eventsOfType(five, "queue_abandon")).toHaveLength(0);
+  });
+
+  it("reserves immediate service capacity across simultaneous zero-tolerance arrivals", () => {
+    const source = festival({
+      vendors: [
+        {
+          ...baseVendor,
+          position: { x: 1, y: 1 },
+          servers: 1,
+          serviceTimeSeconds: 100,
+        },
+      ],
+    });
+    const result = runSimulation(
+      source,
+      settings({
+        attendeeCount: 300,
+        durationSeconds: 200,
+        behavior: {
+          maximumItineraryStops: 1,
+          maximumVendorStops: 1,
+          maximumStageStops: 0,
+          maximumAmenityStops: 0,
+          minimumRemainingTimeSeconds: 0,
+          deterministicExitProbabilityAfterStop: 0,
+          queueToleranceMultiplier: 0,
+        },
+      }),
+    );
+    const joins = eventsOfType(result, "queue_join");
+    const starts = eventsOfType(result, "service_start");
+    expect(joins.length).toBeGreaterThan(0);
+    expect(joins).toHaveLength(starts.length);
+    expect(eventsOfType(result, "queue_abandon")).toHaveLength(0);
+    expect(
+      deriveSimulationMetrics(result.events, source.vendors, result.settings),
+    ).toEqual({ vendorMetrics: result.vendorMetrics, totals: result.totals });
+  });
+
+  it("keeps run-ended attendees at their final world position", () => {
+    const source = festival({
+      vendors: [],
+      stages: [
+        {
+          id: "stage-far",
+          name: "Far stage",
+          position: { x: 10, y: 1 },
+          size: { width: 1, height: 1 },
+          attraction: 1,
+        },
+      ],
+    });
+    const result = runSimulation(
+      source,
+      settings({
+        attendeeCount: 40,
+        durationSeconds: 30,
+        walkingSpeedMetersPerSecond: 1,
+        behavior: {
+          maximumItineraryStops: 1,
+          maximumVendorStops: 0,
+          maximumStageStops: 1,
+          maximumAmenityStops: 0,
+          minimumRemainingTimeSeconds: 0,
+          deterministicExitProbabilityAfterStop: 0,
+          destinationTypeWeights: {
+            stage: 1,
+            vendor: 0,
+            restroom: 0,
+            seating: 0,
+            first_aid: 0,
+          },
+          dwellDurationSeconds: { stage: { minimum: 0, maximum: 100 } },
+        },
+      }),
+    );
+    const finalAttendees = result.frames.at(-1)!.attendees;
+    expect(finalAttendees.every(({ status }) => status === "exited")).toBe(true);
+    expect(
+      finalAttendees.some(
+        ({ position }) => position.x !== 1 || position.y !== 1,
+      ),
+    ).toBe(true);
+    expect(
+      eventsOfType(result, "exit").some(({ reason }) => reason === "run_ended"),
+    ).toBe(true);
   });
 
   it("reconciles frames, destination events, exits, and ANA-01 metrics", () => {

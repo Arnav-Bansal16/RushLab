@@ -156,13 +156,15 @@ function beginExit(
 
 function exitAttendee(
   attendee: AttendeeState,
-  entrancePosition: Point,
   timeSeconds: number,
   reason: ExitReason,
   stepEvents: SimulationEvent[],
+  reachedEntrancePosition?: Point,
 ): void {
   if (attendee.status === "exited") return;
-  attendee.position = { ...entrancePosition };
+  if (reachedEntrancePosition) {
+    attendee.position = { ...reachedEntrancePosition };
+  }
   attendee.status = "exited";
   attendee.targetVendorId = null;
   attendee.target = null;
@@ -491,7 +493,8 @@ function processDwellCompletions(
     ) {
       continue;
     }
-    finishVisit(attendee, timeSeconds, false, stepEvents);
+    const completedAtSeconds = attendee.activeVisit.dwellCompletesAtSeconds;
+    finishVisit(attendee, completedAtSeconds, false, stepEvents);
     const entrance = entrances.get(attendee.entranceId)!;
     afterCompletedStop(attendee, festival, settings, entrance.position, movement);
   }
@@ -551,10 +554,10 @@ function moveAttendees(
       if (!entrance) throw new Error(`Unknown entrance: ${attendee.entranceId}`);
       exitAttendee(
         attendee,
-        entrance.position,
         timeSeconds,
         attendee.exitReason ?? "no_eligible_destination",
         stepEvents,
+        entrance.position,
       );
       continue;
     }
@@ -599,7 +602,8 @@ function processArrivals(
       attendee.profile.queueToleranceSeconds *
       settings.behavior.queueToleranceMultiplier;
     const canStartWithoutWaiting =
-      queue.active.length < queue.serverCount && hasServiceInventory(queue);
+      queue.active.length + queue.waiting.length < queue.serverCount &&
+      hasServiceInventory(queue);
     if (effectiveTolerance === 0 && !canStartWithoutWaiting) {
       finishVisit(attendee, timeSeconds, false, stepEvents);
       const entrance = entrances.get(attendee.entranceId)!;
@@ -690,9 +694,10 @@ function terminateAtRunEnd(
       attendee.requestOpen = false;
     }
     finishVisit(attendee, timeSeconds, true, stepEvents);
-    const entrance = entrances.get(attendee.entranceId);
-    if (!entrance) throw new Error(`Unknown entrance: ${attendee.entranceId}`);
-    exitAttendee(attendee, entrance.position, timeSeconds, "run_ended", stepEvents);
+    if (!entrances.has(attendee.entranceId)) {
+      throw new Error(`Unknown entrance: ${attendee.entranceId}`);
+    }
+    exitAttendee(attendee, timeSeconds, "run_ended", stepEvents);
   }
 }
 
@@ -828,6 +833,15 @@ export const runSimulation: RunSimulation = (festival, settings) => {
         destinationsById,
         attendees,
         entrances,
+        stepEvents,
+      );
+      processDwellCompletions(
+        timeSeconds,
+        festival,
+        resolvedSettings,
+        attendees,
+        entrances,
+        streams.movement,
         stepEvents,
       );
       processArrivals(

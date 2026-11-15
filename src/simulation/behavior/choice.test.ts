@@ -173,7 +173,7 @@ describe("SIM-03 behavior choices", () => {
     ).toEqual({ minimum: 3, maximum: 5 });
   });
 
-  it("keeps dwell samples within the resolved range and fixed steps", () => {
+  it("keeps dwell samples in range and uses fixed steps when possible", () => {
     const choice = new RandomStream(44);
     for (let index = 0; index < 20; index += 1) {
       const duration = sampleDwellDurationSeconds(
@@ -186,6 +186,15 @@ describe("SIM-03 behavior choices", () => {
       expect(duration).toBeLessThanOrEqual(7);
       expect(duration / 0.5).toBe(Math.round(duration / 0.5));
     }
+
+    const subStepDuration = sampleDwellDurationSeconds(
+      { minimum: 0.1, maximum: 0.2 },
+      1,
+      1,
+      new RandomStream(44),
+    );
+    expect(subStepDuration).toBeGreaterThanOrEqual(0.1);
+    expect(subStepDuration).toBeLessThanOrEqual(0.2);
   });
 
   it.each([0, 1, 2])(
