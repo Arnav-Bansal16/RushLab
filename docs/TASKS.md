@@ -16,7 +16,7 @@ both-developer approval. Do not treat old draft-status handoffs as current gates
 | SIM-02 / UI-02 / ANA-01 / CON-02 / SIM-03 | merged baseline | preserve invariants during later integration |
 | UI-04 controls and SIM-03 integration | implementation merged in #10 | UI-04-QA and PERF-01 acceptance below |
 | EXT-01 queue retention / missed sales / playback business snapshots | implemented and merged in #11 | preserve semantics; no duplicate implementation task |
-| ANA-03 destination analytics | committed on `codex/ana-03-destination-metrics` | merge/integrate without reopening its formulas |
+| ANA-03 destination analytics | implemented and locally verified on `codex/ana-03-destination-metrics`; pending PR #14 merge | see [ANA-03 handoff](./ANA-03-HANDOFF.md); integrate without reopening its formulas |
 | UI-03 full results dashboard | not implemented | consume final result, not selected-frame demo values |
 | INT-01 / ANA-02 / REL-01 | not implemented | follow dependencies and release checks |
 
@@ -167,22 +167,30 @@ Do not hide behavior or contract work inside those existing task branches.
 
 ### ANA-03 — destination visit and dwell metrics
 
+**Status:** implemented and locally verified on `codex/ana-03-destination-metrics`;
+pending PR #14 merge. See
+[ANA-03 handoff](./ANA-03-HANDOFF.md) for consumer rules and remaining integration review.
+
 **Continuation:** consume the current merged destination ledger. Queue retention
 and missed-sale events already exist; do not rebuild them here. Existing vendor
-reducers remain authoritative. Full result destination arrays are currently empty.
+reducers remain authoritative. ANA-03 now populates the full result destination
+arrays; UI-03 is responsible for displaying them.
 
 - **Owner / agent:** Developer B; simulation engineer.
 - **Files:** `src/analytics/destinations/**` and adjacent tests.
 - **Dependencies / inputs:** SIM-03 event ledger and ANA-01 metric ownership
   pattern.
-- **Output:** Event-derived visit and dwell summaries for stages and amenities;
-  no frame-derived canonical values.
+- **Output:** Event-derived visit, unique/repeat visitor, completed/truncated
+  dwell and attendee-local type-transition summaries for every vendor, stage
+  and supported amenity; no frame-derived canonical values.
 - **Acceptance:** every summary reconciles exactly with ordered events, includes
   zero-visit destinations in stable ID order, is deterministic/serializable,
   and does not duplicate ANA-01 vendor formulas.
-- **Tests:** empty/zero visits, first/last dwell boundaries, run-end truncation,
-  stable ordering, event reconciliation, input immutability, and same-seed
-  equality.
+- **Tests:** 39 destination tests cover empty/zero visits, missing amenities,
+  first/last/zero-duration boundaries, run-end truncation, unique/repeat visits,
+  attendee-local transitions, malformed ledgers, stable ordering, event
+  reconciliation, fixture values, input immutability, JSON serialization and
+  same-seed equality. Full verification passes 221 tests, lint, types and build.
 - **Effort:** 1.5–2.5 hours.
 - **Checkpoint:** CP3B behavior slice.
 

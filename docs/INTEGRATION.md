@@ -155,7 +155,8 @@ full current boundary, scope extension and evidence.
   entries from display. Missing legacy values are Unavailable, not final totals.
 - A future UI-03 dashboard reads final result metrics, independently of scrubbing.
   Do not reuse playback-time values as final-run summary metrics.
-- ANA-03 destination arrays remain unimplemented/empty. INT-01 must reject or
+- ANA-03 now populates destination arrays in the current worktree; see
+  [ANA-03 handoff](./ANA-03-HANDOFF.md). INT-01 must reject or
   visibly warn on incompatible model semantics as well as mismatched inputs;
   schemaVersion 1 alone cannot equate older timeout-exits runs with current runs.
 - Fresh performance and remaining manual QA are pending, not proven by merge
