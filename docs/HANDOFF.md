@@ -7,6 +7,12 @@ Start with [UI-04 consolidated handoff](./UI-04-CONSOLIDATED-HANDOFF.md) and
 PR #10 and queue-retention PR #11, in addition to merged SIM-03 (#8/#9), CON-02
 and the earlier simulation/vendor-analytics/playback slice.
 
+INT-01 now has a canonical compatibility guard and final-result comparison
+contract. See [INT-01 handoff](./INT-01-HANDOFF.md) for the exact hard-error
+policy, metric representation, and ANA-02/UI-03 consumer boundary.
+ANA-02 and UI-03B should continue from the focused
+[downstream handoff](./INT-01-ANA-02-UI-03B-HANDOFF.md).
+
 The app supports behavior editing, canonical amenities, deterministic bounded
 price/budget-sensitive visits and timed playback. The user-requested extension
 retains queue leavers for another eligible choice, marks frustration/full queues,

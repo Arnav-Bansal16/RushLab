@@ -121,6 +121,20 @@ describe("shared contracts", () => {
     }
   });
 
+  it("snapshots the festival and explicit model semantics with every result", () => {
+    expect(demoSimulationResult.festival).toEqual(demoFestival);
+    expect(demoSimulationResult.festivalId).toBe(
+      demoSimulationResult.festival.id,
+    );
+    expect(demoSimulationResult.modelSemantics).toEqual({
+      itineraryPolicy: "bounded_multi_destination_v1",
+      queueDeparturePolicy: "reselect_after_queue_departure",
+      queueFullPolicy: "record_missed_sale_and_reselect_v1",
+      frustrationPolicy: "queue_departure_marker_v1",
+      missedSalePolicy: "queue_departure_opportunity_v1",
+    });
+  });
+
   it("defines stable engine and comparison boundaries", () => {
     expectTypeOf<RunSimulation>().parameters.toEqualTypeOf<
       [festival: Festival, settings: SimulationSettings]

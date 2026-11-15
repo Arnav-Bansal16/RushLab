@@ -177,9 +177,30 @@ export interface DestinationTransitionMetrics {
   count: number;
 }
 
+/** Explicit engine policies that affect whether two modeled runs are comparable. */
+export interface SimulationModelSemantics {
+  itineraryPolicy: "bounded_multi_destination_v1";
+  queueDeparturePolicy: "reselect_after_queue_departure";
+  queueFullPolicy: "record_missed_sale_and_reselect_v1";
+  frustrationPolicy: "queue_departure_marker_v1";
+  missedSalePolicy: "queue_departure_opportunity_v1";
+}
+
+export const CURRENT_SIMULATION_MODEL_SEMANTICS: Readonly<SimulationModelSemantics> =
+  Object.freeze({
+    itineraryPolicy: "bounded_multi_destination_v1",
+    queueDeparturePolicy: "reselect_after_queue_departure",
+    queueFullPolicy: "record_missed_sale_and_reselect_v1",
+    frustrationPolicy: "queue_departure_marker_v1",
+    missedSalePolicy: "queue_departure_opportunity_v1",
+  });
+
 export interface SimulationResult {
   schemaVersion: 1;
   festivalId: Id;
+  /** Exact immutable run input; comparison uses it for non-layout assumptions. */
+  festival: Festival;
+  modelSemantics: SimulationModelSemantics;
   settings: SimulationSettingsSnapshot;
   attendeeProfiles: AttendeeProfile[];
   frames: SimulationFrame[];
@@ -196,19 +217,127 @@ export interface SimulationResult {
   };
 }
 
-export interface VendorMetricDelta {
-  vendorId: Id;
-  revenue: number;
-  purchases: number;
-  averageWaitSeconds: number;
-  abandonments: number;
+export type MetricUnavailableReason = "entity_absent" | "metric_not_recorded";
+export type MetricNotApplicableReason = "no_stockout";
+
+export type NumericMetricValue =
+  | { status: "available"; value: number }
+  | { status: "unavailable"; reason: MetricUnavailableReason }
+  | { status: "not_applicable"; reason: MetricNotApplicableReason };
+
+export type NumericMetricDelta =
+  | { status: "available"; value: number }
+  | {
+      status: "unavailable";
+      reason:
+        | MetricUnavailableReason
+        | "source_value_unavailable"
+        | "non_finite_result";
+    }
+  | { status: "not_applicable"; reason: MetricNotApplicableReason };
+
+export type PercentageMetricDelta =
+  | { status: "available"; value: number }
+  | {
+      status: "not_applicable";
+      reason: "zero_baseline" | MetricNotApplicableReason;
+    }
+  | {
+      status: "unavailable";
+      reason: "source_value_unavailable" | "non_finite_result";
+    };
+
+export interface NumericMetricComparison<MetricKey extends string = string> {
+  metric: MetricKey;
+  baseline: NumericMetricValue;
+  alternative: NumericMetricValue;
+  absoluteDelta: NumericMetricDelta;
+  percentageDelta: PercentageMetricDelta;
 }
+
+export type RunTotalMetricKey =
+  "purchases" | "revenue" | "abandonments" | "exitedAttendees";
+export type VendorMetricKey =
+  | "visits"
+  | "queueJoins"
+  | "purchases"
+  | "abandonments"
+  | "revenue"
+  | "averageWaitSeconds"
+  | "maximumQueueLength"
+  | "utilization"
+  | "stockoutTimeSeconds"
+  | "missedSaleCount"
+  | "missedSaleValue";
+export type DestinationMetricKey =
+  | "visits"
+  | "uniqueVisitors"
+  | "repeatVisits"
+  | "completedDwellSeconds"
+  | "truncatedDwellSeconds";
+export type DestinationTransitionMetricKey = "count";
+
+export type EntityPresence = "both" | "baseline_only" | "alternative_only";
+
+export interface VendorComparison {
+  vendorId: Id;
+  presence: EntityPresence;
+  metrics: NumericMetricComparison<VendorMetricKey>[];
+}
+
+export interface DestinationComparison {
+  destinationId: Id;
+  destinationType: DestinationType;
+  presence: EntityPresence;
+  metrics: NumericMetricComparison<DestinationMetricKey>[];
+}
+
+export interface DestinationTransitionComparison {
+  fromType: DestinationType;
+  toType: DestinationType;
+  presence: EntityPresence;
+  metrics: NumericMetricComparison<DestinationTransitionMetricKey>[];
+}
+
+export type CompatibilityIssueCode =
+  | "unsupported_schema"
+  | "missing_festival_snapshot"
+  | "missing_model_semantics"
+  | "model_semantics_mismatch"
+  | "settings_mismatch"
+  | "attendee_profiles_mismatch"
+  | "duplicate_result_entity"
+  | "festival_assumption_mismatch"
+  | "invalid_profile_entrance"
+  | "entity_only_on_one_side"
+  | "optional_metric_unavailable";
+
+export interface CompatibilityIssue {
+  code: CompatibilityIssueCode;
+  path: string;
+  message: string;
+}
+
+export interface ScenarioCompatibility {
+  status: "compatible" | "incompatible";
+  errors: CompatibilityIssue[];
+  warnings: CompatibilityIssue[];
+}
+
+export interface ScenarioReference {
+  festivalId: Id;
+  seed: number;
+}
+
 export interface ScenarioComparison {
-  baseline: SimulationResult;
-  alternative: SimulationResult;
-  vendorDeltas: VendorMetricDelta[];
-  totalDeltas: { revenue: number; purchases: number; abandonments: number };
-  warnings: string[];
+  baseline: ScenarioReference;
+  alternative: ScenarioReference;
+  compatibility: ScenarioCompatibility;
+  /** Null when hard incompatibilities prevent a fair modeled comparison. */
+  totals: NumericMetricComparison<RunTotalMetricKey>[] | null;
+  vendors: VendorComparison[] | null;
+  destinations: DestinationComparison[] | null;
+  destinationTransitions: DestinationTransitionComparison[] | null;
 }
 
 export interface RecommendationEvidence {
