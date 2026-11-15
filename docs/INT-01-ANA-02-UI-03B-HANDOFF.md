@@ -27,6 +27,18 @@ paired baseline/candidate runs
 INT-01 reads final result metrics only. Frames, the playback cursor and browser
 time never influence compatibility or deltas.
 
+## Current ANA-02 integration status
+
+INT-01 is merged as PR #15 (`e38aee4`) and ANA-02 now composes its actual
+`compareScenarios` export for every evaluated seed pair. The
+[ANA-02 handoff](./ANA-02-HANDOFF.md) documents the final public entry points,
+objective, candidate constraints, explicit failure states and review fixes.
+Five dedicated ANA-02/INT-01 regression tests verify editable JSON snapshots,
+canonical compatibility/warnings, optional values, zero denominators and
+ranking rejection. No comparison API or canonical delta semantics were changed.
+UI-03B consumes `optimizeLayout(completedResult)` and renders retained
+`pair.comparison`; it does not calculate canonical deltas or scores.
+
 ## Contract facts consumers must preserve
 
 Every current `SimulationResult` snapshots the exact run `festival`, fully

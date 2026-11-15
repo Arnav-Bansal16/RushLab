@@ -341,7 +341,13 @@ export interface ScenarioComparison {
 }
 
 export interface RecommendationEvidence {
-  metric: keyof VendorMetrics | "distanceToEntrance" | "nearbyCongestion";
+  metric:
+    | keyof VendorMetrics
+    | "distanceToEntrance"
+    | "nearbyCongestion"
+    | "abandonmentsPerJoin"
+    | "missedSaleAttempts"
+    | "queueFrustrationAttempts";
   value: number;
   threshold?: number;
 }
