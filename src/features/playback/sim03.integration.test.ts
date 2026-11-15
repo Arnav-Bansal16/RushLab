@@ -128,8 +128,8 @@ describe("merged SIM-03 / UI-04 public integration", () => {
     settings.behavior!.dwellDurationSeconds!.stage!.minimum = 0;
     expect(first.run).toEqual(saved);
     // ANA-03 owns these summaries; UI must not synthesize them from frames.
-    expect(first.run.result.destinationMetrics).toEqual([]);
-    expect(first.run.result.destinationTransitions).toEqual([]);
+    expect(first.run.result.destinationMetrics.length).toBeGreaterThan(0);
+    expect(first.run.result.destinationTransitions.length).toBeGreaterThan(0);
   });
   it("warns on zero weights for available types and preserves zeros through real safe exits", () => {
     const layout = createVendorDemo();

@@ -196,7 +196,7 @@ export default function PlaybackWorkspace({
                 seating, restrooms and first aid. The engine calculates choices,
                 visits, queues, purchases and stockouts from illustrative
                 assumptions. Red guests have left a long or full queue and can
-                choose another stop. Queue capacity is eight waiting guests per
+                choose another stop. Queue capacity is twenty waiting guests per
                 stall. The marked entrance/exit is the engine’s actual departure
                 point. Longer visits reduce early exits; the recording still
                 ends after ten minutes.

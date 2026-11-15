@@ -130,10 +130,12 @@ Remaining, tracked as UI-04-QA and PERF-01 in TASKS:
   not expose requestAnimationFrame. No historical 60 FPS number is current proof.
 - Run required CI/checks on integration before release and record evidence.
 
-## What is not implemented yet
+## Current continuation status
 
-- ANA-03 destination visit/dwell/transition summaries: destinationMetrics and
-  destinationTransitions remain empty; destination events already exist.
+- ANA-03 destination visit/dwell/transition summaries are now implemented and
+  locally verified in the current worktree, pending integration. See
+  [ANA-03 handoff](./ANA-03-HANDOFF.md). The empty-array notes above describe
+  the historical UI-04 merge baseline.
 - UI-03 full vendor/destination results dashboard: the demo stall table is a
   playback panel, not completion of that task.
 - INT-01 baseline/alternative comparison and compatibility warnings.
@@ -145,8 +147,8 @@ Remaining, tracked as UI-04-QA and PERF-01 in TASKS:
 1. Use fetched merged main, not an old SIM-02 or UI-only branch. Read this handoff,
    TASKS, ARCHITECTURE, INTEGRATION, TESTING and relevant owner-specific code.
 2. Finish UI-04-QA and PERF-01; preserve and test the current reset/pacing behavior.
-3. Developer B implements ANA-03 from ordered destination events, including zero
-   destinations, truncation and stable ordering. Do not rebuild existing vendor
+3. Integrate the implemented ANA-03 reducer from ordered destination events,
+   including zero destinations, truncation and stable ordering. Do not rebuild existing vendor
    revenue/missed-sale reducers or use frame-derived canonical counts.
 4. Developer A builds UI-03 from the same ActiveRun result/festival snapshots.
    Clearly distinguish selected-frame playback figures from final-run metrics.
