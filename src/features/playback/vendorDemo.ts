@@ -122,10 +122,10 @@ export function createFestivalDemo() {
   layout.vendors = layout.vendors.map((vendor, index) => ({
     ...vendor,
     averagePrice: [5, 7, 3, 4, 8, 3, 10, 5][index],
-    serviceTimeSeconds: 45,
+    serviceTimeSeconds: 60,
     servers: 1,
     inventory: null,
-    queueLimit: 20,
+    queueLimit: 3,
   }));
   return layout;
 }
@@ -133,6 +133,7 @@ export const festivalDemoSettings: SimulationSettings = {
   ...vendorDemoSettings,
   durationSeconds: 600,
   behavior: {
+    retainAttendeesUntilEnd: true,
     maximumItineraryStops: 6,
     maximumVendorStops: 6,
     maximumStageStops: 6,
@@ -140,7 +141,7 @@ export const festivalDemoSettings: SimulationSettings = {
     maximumVisitsPerDestination: 2,
     deterministicExitProbabilityAfterStop: 0,
     minimumRemainingTimeSeconds: 0,
-    queueToleranceMultiplier: 0.65,
+    queueToleranceMultiplier: 1,
     dwellDurationSeconds: {
       stage: { minimum: 90, maximum: 180 },
       seating: { minimum: 90, maximum: 180 },

@@ -1,13 +1,15 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useRef, useState } from "react";
+import Link from "next/link";
+import { Suspense, useCallback, useRef, useState } from "react";
 import type { Point } from "@/domain";
 import { demoFestival } from "@/fixtures/demoFestival";
 import { downloadLayoutImage } from "./exportImage";
 import BehaviorAttributes from "./BehaviorAttributes";
 import ComponentForm from "./ComponentForm";
 import { createFestivalDemo } from "../playback/vendorDemo";
+import TemplateToolbar from "../templates/TemplateToolbar";
 import PlaybackWorkspace from "../playback/PlaybackWorkspace";
 import {
   snapshotFestival,
@@ -57,6 +59,17 @@ export default function FestivalEditor() {
     }));
     if (message) setNotice(message);
   }
+  const loadSavedTemplate = useCallback(
+    (document: LayoutDocument, name: string) => {
+      setHistory((current) => ({
+        past: [...current.past.slice(-49), current.present],
+        present: structuredClone(document),
+      }));
+      setSelectedId("");
+      setNotice(name === "Unsaved draft" ? "" : `Opened ${name}.`);
+    },
+    [],
+  );
   function move(id: string, position: Point) {
     commit(
       editComponent(layout, id, { position }),
@@ -112,9 +125,9 @@ export default function FestivalEditor() {
   return (
     <main className="workspace">
       <header className="topbar">
-        <div className="brand">
+        <Link href="/" className="brand" aria-label="RushLab home">
           R<span>RushLab</span>
-        </div>
+        </Link>
         <span className="workspace-label">EVENT WORKSPACE</span>
         <span className="phase">01 / Venue builder</span>
       </header>
@@ -136,6 +149,9 @@ export default function FestivalEditor() {
           <span aria-hidden="true">↗</span>
         </button>
       </section>
+      <Suspense fallback={<p>Loading template controls…</p>}>
+        <TemplateToolbar layout={layout} onLoad={loadSavedTemplate} />
+      </Suspense>
       <a className="playback-jump" href="#simulation-heading">
         Preview guest movement ↓
       </a>

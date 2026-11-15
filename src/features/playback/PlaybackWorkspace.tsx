@@ -3,12 +3,15 @@ import BehaviorControls, {
   readBehavior,
 } from "../simulation-settings/BehaviorControls";
 import { useState } from "react";
-import type { SimulationSettings } from "../../domain";
+import type { LayoutOptimization, SimulationSettings } from "../../domain";
 import type { LayoutDocument } from "../editor/layout";
 import { executeRun, type ActiveRun } from "./run";
 import { createFestivalDemo, festivalDemoSettings } from "./vendorDemo";
 import PlaybackView, { RunMessages } from "./PlaybackView";
 import "./playback.css";
+import { evaluateCapacityScenario } from "../dashboard/evaluateCapacityScenario";
+import LayoutReport from "../dashboard/LayoutReport";
+import FinalResultsDashboard from "../dashboard/FinalResultsDashboard";
 
 const startingSettings: SimulationSettings = {
   seed: 42,
@@ -45,6 +48,8 @@ export default function PlaybackWorkspace({
     run: ActiveRun;
     id: number;
     example: boolean;
+    optimization: LayoutOptimization | null;
+    evaluationError: string;
   } | null>(null);
   const [errors, setErrors] = useState<string[]>([]),
     [warnings, setWarnings] = useState<string[]>([]);
@@ -55,12 +60,24 @@ export default function PlaybackWorkspace({
   ) {
     const outcome = executeRun(source, settings);
     if (outcome.ok) {
+      let optimization: LayoutOptimization | null = null;
+      let evaluationError = "";
+      try {
+        optimization = evaluateCapacityScenario(outcome.run.result);
+      } catch (error) {
+        evaluationError =
+          error instanceof Error
+            ? error.message
+            : "Comparison could not be calculated.";
+      }
       setErrors([]);
       setWarnings([]);
       setActive((previous) => ({
         run: outcome.run,
         id: (previous?.id ?? 0) + 1,
         example,
+        optimization,
+        evaluationError,
       }));
     } else {
       setErrors(outcome.errors);
@@ -80,12 +97,6 @@ export default function PlaybackWorkspace({
           your layout. Or try a ready-made market with eight vendors.
         </p>
       </header>
-      <p role="note" className="demo-context">
-        Modeled assumptions: guests make price- and budget-sensitive vendor
-        choices, take bounded visits to vendors, stages and amenities, roam,
-        queue, dwell and exit. Vendors alone have queues and service. These are
-        modeled estimates, not forecasts of real customer behavior.
-      </p>
       <form
         className="run-settings"
         aria-label="Simulation settings"
@@ -161,9 +172,7 @@ export default function PlaybackWorkspace({
           <strong>See a busier event first</strong>
           <p>
             8 vendors · a stage · bathroom, seating and first aid · a marked
-            exit · 300 guests · a 10-minute stay-and-explore preview. Longer
-            dwell, finite queues and no random post-stop exits keep visits
-            inside the festival. Your editor layout stays unchanged.
+            exit · 300 guests · a 10-minute stay-and-explore preview.
           </p>
         </div>
         <button
@@ -179,8 +188,8 @@ export default function PlaybackWorkspace({
       <RunMessages errors={errors} warnings={warnings} />
       {errors.length > 0 && active && (
         <p className="prior-run-note">
-          The attempt above was rejected. Playback below is the previous
-          successful run.
+          The attempt above was rejected. Playback and final results below are
+          the previous successful run.
         </p>
       )}
       {active ? (
@@ -188,19 +197,6 @@ export default function PlaybackWorkspace({
           {active.example && (
             <div className="demo-context" role="note">
               <strong>Watching the 8-vendor example</strong>
-              <p>
-                All walking and movement is blue; queues are amber, and guests
-                leaving the festival are magenta. Guests at a stop use neutral
-                gray. Gray faded guests have exited. The table follows the same
-                recorded moment. Guests can also roam and dwell at the stage,
-                seating, restrooms and first aid. The engine calculates choices,
-                visits, queues, purchases and stockouts from illustrative
-                assumptions. Red guests have left a long or full queue and can
-                choose another stop. Queue capacity is twenty waiting guests per
-                stall. The marked entrance/exit is the engine’s actual departure
-                point. Longer visits reduce early exits; the recording still
-                ends after ten minutes.
-              </p>
             </div>
           )}
           <PlaybackView
@@ -220,6 +216,20 @@ export default function PlaybackWorkspace({
           </p>
         </div>
       )}
+      <FinalResultsDashboard
+        run={active?.run ?? null}
+        previous={errors.length > 0}
+      >
+        {active && (
+          <LayoutReport
+            key={active.id}
+            run={active.run}
+            demo={active.example}
+            output={active.optimization}
+            error={active.evaluationError}
+          />
+        )}
+      </FinalResultsDashboard>
     </section>
   );
 }

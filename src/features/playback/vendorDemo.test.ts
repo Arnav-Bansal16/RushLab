@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { createVendorDemo, vendorDemoSettings } from "./vendorDemo";
+import {
+  createFestivalDemo,
+  festivalDemoSettings,
+  createVendorDemo,
+  vendorDemoSettings,
+} from "./vendorDemo";
 import { executeRun } from "./run";
 import { attendeeDescription } from "./presentation";
 import { createBlankLayout } from "../editor/layout";
@@ -57,4 +62,40 @@ describe("organizer-friendly vendor example", () => {
     expect(html).toContain('<details class="advanced-run-settings">');
     expect(html).not.toContain('<details class="advanced-run-settings" open');
   });
+});
+
+// Compare illustrative assumptions, never alter the canonical patience policy.
+it("normal patience with short queues produces full-queue frustration", () => {
+  const layout = createFestivalDemo();
+  const previousLayout = structuredClone(layout);
+  previousLayout.vendors.forEach((vendor) => {
+    vendor.queueLimit = 20;
+  });
+  const previousSettings = structuredClone(festivalDemoSettings);
+  previousSettings.behavior!.queueToleranceMultiplier = 1;
+  const before = executeRun(previousLayout, previousSettings);
+  const after = executeRun(layout, festivalDemoSettings);
+  if (!before.ok || !after.ok) throw new Error("Demo run failed");
+  const attempts = (result: typeof after.run.result) =>
+    result.events.filter(
+      (event) => event.type === "missed_sale" && event.reason === "queue_full",
+    ).length;
+  console.info(
+    "Frustration demonstration attempts:",
+    attempts(before.run.result),
+    "→",
+    attempts(after.run.result),
+  );
+  expect(attempts(after.run.result)).toBeGreaterThan(
+    attempts(before.run.result),
+  );
+  expect(after.run.result.settings.behavior.queueToleranceMultiplier).toBe(1);
+  expect(
+    after.run.festivalSnapshot.vendors.every(
+      (vendor) => vendor.serviceTimeSeconds === 60,
+    ),
+  ).toBe(true);
+  expect(after.run.result.attendeeProfiles).toEqual(
+    before.run.result.attendeeProfiles,
+  );
 });

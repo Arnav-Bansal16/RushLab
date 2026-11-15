@@ -16,6 +16,13 @@ export default function ResolvedAssumptions({
         run. Later edits above do not change them. Outputs are modeled
         estimates, not forecasts.
       </p>
+      {behavior.retainAttendeesUntilEnd && (
+        <p>
+          Demo retention: guests remain on site until closing. Queue-frustration
+          markers persist until closing, including while guests wait on site
+          after finishing their bounded visits.
+        </p>
+      )}
       <dl>
         {[
           ...Object.entries(base).map(([path, value]) => ({ path, value })),

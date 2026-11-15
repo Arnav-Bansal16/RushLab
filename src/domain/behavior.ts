@@ -6,10 +6,7 @@ import type {
 } from "./model";
 
 export type AttendeeIntent =
-  | "stage_first"
-  | "vendor_first"
-  | "explorer"
-  | "amenity_first";
+  "stage_first" | "vendor_first" | "explorer" | "amenity_first";
 
 export type IntentWeights = Record<AttendeeIntent, number>;
 export type DestinationTypeWeights = Record<DestinationType, number>;
@@ -20,6 +17,8 @@ export type DwellDurationRanges = Record<
 >;
 
 export interface BehaviorSettings {
+  /** Opt-in illustrative mode: stay on site and retain queue-frustration markers until closing. */
+  retainAttendeesUntilEnd?: boolean;
   maximumItineraryStops: number;
   maximumVendorStops: number;
   maximumStageStops: number;
@@ -54,6 +53,7 @@ export interface BehaviorSettingsInput
 }
 
 export const DEFAULT_BEHAVIOR_SETTINGS: BehaviorSettings = {
+  retainAttendeesUntilEnd: false,
   maximumItineraryStops: 4,
   maximumVendorStops: 2,
   maximumStageStops: 2,
@@ -101,14 +101,13 @@ function finiteInRange(
   name: string,
 ): void {
   if (!Number.isFinite(value) || value < minimum || value > maximum) {
-    throw new Error(`${name} must be finite and between ${minimum} and ${maximum}`);
+    throw new Error(
+      `${name} must be finite and between ${minimum} and ${maximum}`,
+    );
   }
 }
 
-function validateWeights(
-  weights: Record<string, number>,
-  name: string,
-): void {
+function validateWeights(weights: Record<string, number>, name: string): void {
   for (const [key, value] of Object.entries(weights)) {
     finiteInRange(value, 0, WEIGHT_MAXIMUM, `${name}.${key}`);
   }
@@ -116,11 +115,18 @@ function validateWeights(
 
 export function validateBehaviorSettings(settings: BehaviorSettings): void {
   if (
+    settings.retainAttendeesUntilEnd !== undefined &&
+    typeof settings.retainAttendeesUntilEnd !== "boolean"
+  )
+    throw new Error("retainAttendeesUntilEnd must be boolean");
+  if (
     !Number.isInteger(settings.maximumItineraryStops) ||
     settings.maximumItineraryStops < 1 ||
     settings.maximumItineraryStops > 6
   ) {
-    throw new Error("maximumItineraryStops must be an integer from 1 through 6");
+    throw new Error(
+      "maximumItineraryStops must be an integer from 1 through 6",
+    );
   }
   for (const [name, value] of [
     ["maximumVendorStops", settings.maximumVendorStops],
@@ -153,7 +159,12 @@ export function validateBehaviorSettings(settings: BehaviorSettings): void {
   ) {
     throw new Error("roamingWaypoints must be an integer from 0 through 2");
   }
-  finiteInRange(settings.queueToleranceMultiplier, 0, 5, "queueToleranceMultiplier");
+  finiteInRange(
+    settings.queueToleranceMultiplier,
+    0,
+    5,
+    "queueToleranceMultiplier",
+  );
   finiteInRange(settings.priceElasticity, 0, 10, "priceElasticity");
   finiteInRange(
     settings.deterministicExitProbabilityAfterStop,

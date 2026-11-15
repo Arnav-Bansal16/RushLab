@@ -55,3 +55,10 @@ If approved later, server-only `OPENAI_API_KEY` may support explanations. Supaba
 - Record commit SHA and demo URL.
 - Keep a local fallback recording/screenshots and a known-good branch.
 - Do not provision a custom domain or paid plan unless the team explicitly approves it.
+
+## Optional organizer accounts (explicitly requested after the original P0)
+
+See `docs/ORGANIZER-ACCOUNTS-SETUP.md` for the Supabase migration, public
+configuration, email redirect URLs and required two-account access checks.
+Cloud templates require that setup; the guest workspace does not. Use Node.js
+22+ for the current official SDK. No cloud project or deployment was created.

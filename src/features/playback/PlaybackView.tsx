@@ -213,148 +213,162 @@ export default function PlaybackView({
             (person) => attendeeStyle(person) === angryStyle,
           ).length ?? 0}
         </strong>
-        <small>Guests shown in red at the selected playback moment</small>
+        <small>
+          {result.settings.behavior.retainAttendeesUntilEnd
+            ? "Guests with a queue-frustration experience during this event"
+            : "Guests shown in red at the selected playback moment"}
+        </small>
       </div>
-      <StatusLegend />
-      <p className="playback-color-note">
-        Blue groups all walking and movement states. Guests at a stop use
-        neutral gray; queued guests remain amber. Red marks recent queue
-        frustration.
-      </p>
-      <section
-        className="stall-statistics"
-        aria-labelledby="stall-revenue-heading"
-      >
-        <h3 id="stall-revenue-heading">
-          Stall performance · {formatTime(frame?.timeSeconds ?? 0)}
-        </h3>
-        <p className="statistics-context">
-          Recorded earnings and missed sales at the selected playback moment, in
-          display currency units. Values follow play, pause, restart and
-          scrubbing.
-        </p>
-        {frame?.vendors.length ? (
-          <div className="vendor-table-wrap">
-            <table className="statistics-table">
-              <caption>
-                Stall revenue at {formatTime(frame?.timeSeconds ?? 0)}
-              </caption>
-              <thead>
-                <tr>
-                  <th scope="col">Stall</th>
-                  <th scope="col" className="numeric">
-                    Revenue
-                  </th>
-                  <th scope="col" className="numeric">
-                    Missed sales
-                  </th>
-                  <th scope="col" className="numeric">
-                    Missed-sale value
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {frame.vendors.map((metric) => (
-                  <tr key={metric.vendorId}>
-                    <th scope="row">
-                      {festival.vendors.find(
-                        (vendor) => vendor.id === metric.vendorId,
-                      )?.name ?? metric.vendorId}
-                    </th>
-                    <td className="numeric revenue-value">
-                      {metric.cumulativeRevenue === undefined
-                        ? "Unavailable"
-                        : formatCurrencyUnits(metric.cumulativeRevenue)}
-                    </td>
-                    <td className="numeric">
-                      {metric.cumulativeMissedSales === undefined
-                        ? "Unavailable"
-                        : metric.cumulativeMissedSales.toLocaleString("en-US")}
-                    </td>
-                    <td className="numeric missed-value">
-                      {metric.cumulativeMissedSaleValue === undefined
-                        ? "Unavailable"
-                        : formatCurrencyUnits(metric.cumulativeMissedSaleValue)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p>No stall revenue results in this run.</p>
-        )}
-      </section>
-      <p className="statistics-explanation">
-        Revenue is money from completed purchases, not profit or a forecast.
-        Missed sales count long-wait abandonments and full-queue rejections.
-        Each long-wait abandonment or full-queue rejection is valued at that
-        stall’s average price. They are potential stall sales, not actual lost
-        festival revenue: a guest may buy elsewhere. Red guests are modeled as
-        frustrated for 15 simulated seconds after leaving a long or full queue.
-      </p>
-      <details>
-        <summary>Missed sales up to this moment</summary>
-        <ul>
-          {result.events
-            .filter(
-              (event) =>
-                event.type === "missed_sale" &&
-                frame !== undefined &&
-                event.timeSeconds <= frame.timeSeconds,
-            )
-            .map(
-              (event, index) =>
-                event.type === "missed_sale" && (
-                  <li key={index}>
-                    {event.timeSeconds}s · {event.attendeeId} ·{" "}
-                    {festival.vendors.find((v) => v.id === event.vendorId)
-                      ?.name ?? event.vendorId}{" "}
-                    ·{" "}
-                    {event.reason === "queue_full"
-                      ? "Queue full"
-                      : "Wait too long"}{" "}
-                    · missed sale {formatCurrencyUnits(event.missedSaleValue)}{" "}
-                    currency units
-                  </li>
-                ),
-            )}
-        </ul>
-      </details>
-      <ul aria-label="Map destination legend" className="status-legend">
-        {festival.stages.map((item) => (
-          <li key={item.id}>{item.name} · stage (dark green)</li>
-        ))}
-        {(festival.amenities ?? []).map((item) => (
-          <li key={item.id}>
-            {item.name} · {item.type.replaceAll("_", " ")} (
-            {item.type === "restroom"
-              ? "blue"
-              : item.type === "seating"
-                ? "lavender"
-                : "pink"}
-            )
-          </li>
-        ))}
-      </ul>
-      <ResolvedAssumptions settings={result.settings} />
       <details className="playback-recording-details">
-        <summary>Recording details</summary>
-        <p>
-          Seed {result.settings.seed} · requested duration{" "}
-          {result.settings.durationSeconds} seconds · last recorded frame {last}{" "}
-          seconds · frame {index + 1} of {frames.length}.
+        <summary>Recorded-moment statistics and guest details</summary>
+        <StatusLegend />
+        <p className="playback-color-note">
+          Blue groups all walking and movement states. Guests at a stop use
+          neutral gray; queued guests remain amber.{" "}
+          {result.settings.behavior.retainAttendeesUntilEnd
+            ? "Red retains modeled queue frustration until closing in this demo."
+            : "Red marks recent queue frustration."}
         </p>
+        <section
+          className="stall-statistics"
+          aria-labelledby="stall-revenue-heading"
+        >
+          <h3 id="stall-revenue-heading">
+            Stall performance · {formatTime(frame?.timeSeconds ?? 0)}
+          </h3>
+          <p className="statistics-context">
+            Recorded earnings and missed sales at the selected playback moment,
+            in display currency units. Values follow play, pause, restart and
+            scrubbing.
+          </p>
+          {frame?.vendors.length ? (
+            <div className="vendor-table-wrap">
+              <table className="statistics-table">
+                <caption>
+                  Stall revenue at {formatTime(frame?.timeSeconds ?? 0)}
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Stall</th>
+                    <th scope="col" className="numeric">
+                      Revenue
+                    </th>
+                    <th scope="col" className="numeric">
+                      Missed sales
+                    </th>
+                    <th scope="col" className="numeric">
+                      Missed-sale value
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {frame.vendors.map((metric) => (
+                    <tr key={metric.vendorId}>
+                      <th scope="row">
+                        {festival.vendors.find(
+                          (vendor) => vendor.id === metric.vendorId,
+                        )?.name ?? metric.vendorId}
+                      </th>
+                      <td className="numeric revenue-value">
+                        {metric.cumulativeRevenue === undefined
+                          ? "Unavailable"
+                          : formatCurrencyUnits(metric.cumulativeRevenue)}
+                      </td>
+                      <td className="numeric">
+                        {metric.cumulativeMissedSales === undefined
+                          ? "Unavailable"
+                          : metric.cumulativeMissedSales.toLocaleString(
+                              "en-US",
+                            )}
+                      </td>
+                      <td className="numeric missed-value">
+                        {metric.cumulativeMissedSaleValue === undefined
+                          ? "Unavailable"
+                          : formatCurrencyUnits(
+                              metric.cumulativeMissedSaleValue,
+                            )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p>No stall revenue results in this run.</p>
+          )}
+        </section>
+        <p className="statistics-explanation">
+          Revenue is money from completed purchases, not profit or a forecast.
+          Missed sales count long-wait abandonments and full-queue rejections.
+          Each long-wait abandonment or full-queue rejection is valued at that
+          stall’s average price. They are potential stall sales, not actual lost
+          festival revenue: a guest may buy elsewhere. Red guests are modeled as
+          frustrated for 15 simulated seconds after leaving a long or full
+          queue.
+        </p>
+        <details>
+          <summary>Missed sales up to this moment</summary>
+          <ul>
+            {result.events
+              .filter(
+                (event) =>
+                  event.type === "missed_sale" &&
+                  frame !== undefined &&
+                  event.timeSeconds <= frame.timeSeconds,
+              )
+              .map(
+                (event, index) =>
+                  event.type === "missed_sale" && (
+                    <li key={index}>
+                      {event.timeSeconds}s · {event.attendeeId} ·{" "}
+                      {festival.vendors.find((v) => v.id === event.vendorId)
+                        ?.name ?? event.vendorId}{" "}
+                      ·{" "}
+                      {event.reason === "queue_full"
+                        ? "Queue full"
+                        : "Wait too long"}{" "}
+                      · missed sale {formatCurrencyUnits(event.missedSaleValue)}{" "}
+                      currency units
+                    </li>
+                  ),
+              )}
+          </ul>
+        </details>
+        <ul aria-label="Map destination legend" className="status-legend">
+          {festival.stages.map((item) => (
+            <li key={item.id}>{item.name} · stage (dark green)</li>
+          ))}
+          {(festival.amenities ?? []).map((item) => (
+            <li key={item.id}>
+              {item.name} · {item.type.replaceAll("_", " ")} (
+              {item.type === "restroom"
+                ? "blue"
+                : item.type === "seating"
+                  ? "lavender"
+                  : "pink"}
+              )
+            </li>
+          ))}
+        </ul>
+        <ResolvedAssumptions settings={result.settings} />
+        <details className="playback-recording-details">
+          <summary>Recording details</summary>
+          <p>
+            Seed {result.settings.seed} · requested duration{" "}
+            {result.settings.durationSeconds} seconds · last recorded frame{" "}
+            {last} seconds · frame {index + 1} of {frames.length}.
+          </p>
+        </details>
+        {frame && (
+          <FrameDetails
+            festival={festival}
+            frame={frame}
+            playing={state.playing}
+            inspectedId={inspectedId}
+            onInspect={setInspectedId}
+          />
+        )}
       </details>
-      {frame && (
-        <FrameDetails
-          festival={festival}
-          frame={frame}
-          playing={state.playing}
-          inspectedId={inspectedId}
-          onInspect={setInspectedId}
-        />
-      )}
     </section>
   );
 }
