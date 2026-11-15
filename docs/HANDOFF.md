@@ -14,11 +14,12 @@ records modeled missed-sale attempts and paces business figures with playback.
 That extension crossed original UI-04 ownership into shared contracts,
 simulation and analytics; TASKS tracks it as merged EXT-01, not future work.
 
-Latest implementation evidence: verify passed 182 tests, lint, types and build.
-Complete manual accessibility/lifecycle checks and fresh 300-guest FPS/runtime/
-payload measurement remain outstanding. ANA-03 destination summaries, UI-03 full
-results dashboard, INT-01 comparisons, ANA-02 recommendations and REL-01 remain
-next steps. The demo's stall table does not complete those tasks.
+Latest merged implementation evidence: verify passed 182 tests, lint, types and
+build. Complete manual accessibility/lifecycle checks and fresh 300-guest
+FPS/runtime/payload measurement remain outstanding. ANA-03 destination
+summaries are committed on `codex/ana-03-destination-metrics` and await normal
+merge/integration. INT-01, the expanded ANA-02 issues/candidate work, UI-03 and
+REL-01 follow. The demo's stall table does not complete those tasks.
 
 PR merge presence is verified; both-developer approvals are not independently
 verified from empty review-list results. Follow normal joint review for new
@@ -67,9 +68,13 @@ in `docs/TASKS.md`.
 3. Rebase from the merged CON-02 contract.
 4. Run SIM-03 and UI-04 in parallel because they own disjoint folders.
 5. Start ANA-03 only after SIM-03 fixes the destination event ledger.
-6. Integrate UI-03 and INT-01 with the new metrics and fair-comparison checks.
-7. Run the full CP3B demo flow, `npm run verify`, and the 300-attendee playback
-   check before feature freeze.
+6. Finish INT-01's fair-comparison checks, then expand ANA-02 into the
+   deterministic issues report and bounded candidate-layout evaluator described
+   in `docs/TASKS.md`.
+7. Integrate UI-03 with canonical metrics, issues, candidate changes, and raw
+   before/after evidence; UI code must not recalculate findings or scores.
+8. Run the full CP4 report flow, `npm run verify`, the 300-attendee playback
+   check, and the capped candidate-search benchmark before feature freeze.
 
 Do not add behavior changes to ANA-01, do not let UI calculate choices or
 canonical metrics, and do not let SIM-03 independently invent a private event
@@ -132,5 +137,10 @@ The expanded P0 is ready when a reviewer can:
 5. rerun an alternative with the same profiles, intent assignments, seed, and
    behavior settings;
 6. inspect event-reconciled vendor and destination results; and
-7. understand that prices, visits, revenue, and recommendations are modeled
-   estimates rather than forecasts.
+7. generate an evidence-backed issues report and an editable best-tested
+   candidate layout;
+8. inspect absolute and percentage baseline-versus-candidate changes, including
+   an explicit unavailable state for zero-denominator percentages; and
+9. understand that prices, visits, revenue, issues, and recommendations are
+   modeled estimates rather than forecasts, and that the candidate is not a
+   proven global optimum.

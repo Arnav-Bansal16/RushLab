@@ -131,13 +131,27 @@ and types, not rely on the illustrative fixture's positional order.
 1. Review and integrate ANA-03, the focused UI-04 test expectation update, and
    the separately requested demo tuning. Do not treat demo configuration changes
    as changes to global model defaults.
-2. UI-03: final vendor and destination dashboard from immutable ActiveRun data;
-   distinguish final results from the selected-frame business panel.
-3. INT-01: compare compatible settings and complete profiles, with explicit
+2. INT-01: compare compatible settings and complete profiles, with explicit
    warnings/rejection for mismatches and historical queue-policy semantics.
    Schema version alone does not establish compatibility. Existing comparison
    delta contracts cover vendor metrics; adding public destination delta fields
    requires joint contract review.
-4. ANA-02: evidence-backed placement/capacity recommendations after comparison.
+3. ANA-02: implement the deterministic issues report and bounded candidate-layout
+   evaluation from main's updated roadmap after INT-01. Preserve ANA-03 formulas;
+   new shared issue/candidate/delta shapes need joint contract review.
+4. UI-03: final vendor/destination dashboard and issues/candidate report from
+   immutable ActiveRun data; distinguish final results from selected-frame
+   business values. Base metric views may proceed earlier, but report integration
+   waits for ANA-02's reviewed output.
 5. Complete UI-04-QA and PERF-01 alongside feature work; then REL-01 preview and
    full demo hardening. Current runtime/FPS/payload acceptance is still pending.
+
+## PR #14 conflict resolution
+
+Merged main `e563ef6` (PR #13 roadmap update) into the ANA-03 branch. The only
+textual conflict was the `docs/TASKS.md` checkpoint header. Resolution preserves
+main's INT-01 → ANA-02 → UI-03 continuation and full candidate-layout/issues
+requirements while retaining ANA-03 implementation status, test evidence and
+this handoff link. The task section now explicitly records delivered vendor,
+stage and amenity metrics and type transitions. No ANA-03 implementation, demo
+settings, shared contract or fixture was changed by the conflict resolution.

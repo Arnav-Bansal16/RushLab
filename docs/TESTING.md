@@ -38,24 +38,40 @@ Vitest is the P0 test runner. Keep most tests pure and fast under Node; browser 
 - Baseline/alternative comparison checks compatible assumptions and shared
   profiles/intents, including every advanced behavior setting.
 - Suggested positions stay in bounds and outside obstacles; capacity suggestions reference evidence.
+- Every reported layout issue has a deterministic stable ID, explicit severity,
+  threshold, canonical metric evidence, affected entity, suggested action, and
+  model limitation.
+- Candidate generation is deterministic, capped at four, immutable, and
+  produces only legal complete festival snapshots while preserving fields it
+  did not target.
+- Every candidate comparison reuses compatible profiles, seeds, duration,
+  demand, and behavior settings; zero-baseline percentage changes are reported
+  as unavailable rather than infinite.
+- Candidate ranking uses the documented three-seed suite and retains raw
+  per-metric and per-seed comparisons; the selected result is labeled
+  best-tested rather than globally optimal.
 - UI fixtures satisfy the same types returned by the engine.
 
 ## Test layers
 
 1. Unit: PRNG stream isolation, intent assignment, destination/price utility,
    bounded itinerary planning, dwell-default resolution, queue-tolerance
-   scaling, queue state, movement/dwell, and metric reducers.
+   scaling, queue state, movement/dwell, metric reducers, issue thresholds, and
+   candidate scoring.
 2. Invariant/property-style loops: overall/per-type/revisit limits, no immediate
    duplicates, in-bounds roaming, affordable choices, multi-purchase budget and
    inventory conservation, non-negative inventory/queues, early exits, missing
    types, and stable ordering across many seeds.
 3. Contract: JSON round-trip and UI/engine fixture compatibility.
 4. Integration: a small festival completes spawn → stage/vendor/amenity →
-   another distinct destination → purchase or exit → event-derived metrics.
-5. Performance: 250/300 attendee run and 300-circle playback budget; report machine and numbers.
+   another distinct destination → purchase or exit → event-derived metrics →
+   issues report → legal candidate → paired comparison.
+5. Performance: 250/300 attendee run, 300-circle playback, and capped candidate
+   search budget; report machine, candidate/seed counts, and timings.
 6. Release smoke: edit vendor position/price and behavior settings, run
-   baseline, run a compatible alternative, then view playback,
-   deltas/recommendation, and modeled-assumption warnings on preview.
+   baseline, inspect the issues report, run a compatible manual alternative,
+   generate an editable best-tested candidate, then view playback, raw deltas,
+   recommendation evidence, and modeled-assumption warnings on preview.
 
 Avoid snapshotting wall-clock runtime, canvas pixels, or entire large frame payloads. Snapshot deterministic event/metric subsets when they improve reviewability.
 

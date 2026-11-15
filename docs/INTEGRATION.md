@@ -11,8 +11,12 @@
 5. Playback reads frames. Dashboard reads metrics. Neither mutates the result.
 6. An alternative layout reuses baseline settings and attendee profiles.
 7. `compareScenarios` validates compatibility before calculating deltas.
-8. Recommendations use festival constraints and calculated results.
-9. Optional AI receives only a compact structured comparison/recommendation payload.
+8. Analytics derives a deterministic issues report from canonical metrics.
+9. Recommendations generate a small bounded set of legal festival candidates.
+10. Candidate evaluation reuses the same comparison guard and returns an
+    editable best-tested candidate with raw before/after evidence.
+11. Optional AI receives only a compact structured
+    comparison/issues/recommendation payload.
 
 ## Contract rules
 
@@ -55,6 +59,16 @@
 - Frames expose generic targets and travel/dwell/queue/exit state for modeled
   human-like playback. Canonical visit, transition, exit, budget, inventory,
   and business metrics remain event-derived.
+- Layout findings and candidate scores are analytics outputs, not UI
+  calculations. Every finding carries its threshold and canonical metric
+  evidence; every candidate retains the raw comparison deltas used to rank it.
+- P0 candidate generation changes only named vendor placement/capacity fields,
+  returns complete immutable `Festival` snapshots, uses deterministic bounded
+  enumeration or named streams, and preserves all non-targeted inputs.
+- `best-tested candidate` means best within the documented candidate/seed set.
+  It is never described as a global optimum or forecast.
+- Physical crowd-flow, collision, and walkway-capacity bottlenecks are not
+  canonical P0 findings. Any spatial hotspot is a visibly limited heuristic.
 
 ## Shared fixtures
 
@@ -77,6 +91,14 @@ other non-layout demand assumptions.
 A mismatch must either reject comparison or populate
 `ScenarioComparison.warnings`; it must never silently present a fair-looking
 delta.
+
+Generated-candidate evaluation applies this guard independently for every
+baseline/candidate pair. P0 evaluates no more than four candidates with a
+documented three-seed suite derived deterministically from the requested
+baseline seed. Each candidate is paired with the corresponding baseline for
+each seed, per-seed comparisons are retained, and aggregation makes no
+confidence-interval claim. Percentage deltas with a zero baseline denominator
+are explicitly unavailable.
 
 ## Event-to-metric ownership
 
@@ -108,7 +130,9 @@ Tests must reconcile aggregates with the event ledger.
 - CP3B: the same load produces deterministic stage/vendor/roam/amenity behavior
   plus event-reconciled destination summaries.
 - CP4: move or reprice one vendor, rerun with common profiles, intents, and
-  settings, then compare and recommend.
+  settings, then compare; generate an issues report and a bounded set of legal
+  candidates; identify an editable best-tested candidate with auditable raw
+  deltas.
 - CP5: run the exact demo script against a Vercel preview.
 
 If a contract must change after CP1, open a small contract PR first, update fixtures/tests, get both humans to review, merge, then rebase dependent branches.

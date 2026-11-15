@@ -22,9 +22,11 @@ Editor (React + Konva) ──updates──> Festival contract
                     ▼                 ▼                  ▼
             Konva playback      Recharts dashboard   analytics rules
                                       │                  │
-                                      └── comparison ────┘
-                                                          │
-                                               optional P1 explanation
+                                      └── comparison ────┤
+                                                         ▼
+                                            issues + bounded candidates
+                                                         │
+                                            optional P1 explanation
 ```
 
 ## Stack
@@ -82,6 +84,54 @@ timestamps and durations are seconds from simulation start. The reviewed
 `demoFestival` and `demoSimulationResult` fixtures are the shared integration
 examples for UI, simulation, and analytics work. They are JSON documents and
 must remain valid against the public contracts.
+
+ANA-02 extends the analytics layer with serializable issue-report and candidate
+evaluation shapes. Because those shapes cross analytics and UI ownership, they
+receive a small joint contract review before implementation. The existing
+`runSimulation`, `compareScenarios`, and `recommendPlacements` boundaries stay
+valid; candidate generation composes them rather than moving simulation or
+metric calculations into React.
+
+## Layout issues and bounded candidate evaluation
+
+The P0 issues report is a deterministic interpretation of canonical ANA-01 and
+ANA-03 metrics. Each finding has a stable ID, category, severity, affected
+entities, metric evidence, an explicit threshold, a suggested action, and a
+model-limitation note. Supported findings include vendor wait/queue,
+abandonment, utilization, stockout, underuse/overload, and uneven destination
+visits or dwell. UI code renders these findings but does not recalculate them.
+
+P0 does not model collision dynamics, walkway capacity, or calibrated crowd
+density. It may report a `potential congestion area` only when the supporting
+heuristic and limitation are visible. It must not present that label as a
+validated physical bottleneck or safety forecast.
+
+Candidate generation is deliberately bounded and deterministic:
+
+1. derive evidence-backed placement or capacity actions from the baseline;
+2. produce at most four legal `Festival` snapshots in stable order;
+3. simulate the baseline and each candidate with paired seeds, identical
+   profiles, duration, demand, and behavior assumptions;
+4. compare each pair through the canonical comparison layer;
+5. rank candidates with a visible documented objective while retaining all raw
+   metric deltas; and
+6. return the best-tested candidate as editable festival data.
+
+P0 candidate mutations are limited to vendor placement and supported capacity
+changes. They preserve stages, entrances, paths, amenities, prices, and all
+non-layout demand assumptions unless the recommendation explicitly names the
+field. Geometry remains in bounds, outside obstacles, and free of illegal
+overlap. Generation uses deterministic enumeration or named seeded streams and
+never `Math.random()`.
+
+The evaluation reports absolute and percentage changes for the metrics it
+uses. A zero baseline denominator is `not applicable`, not an infinite or
+fabricated improvement. P0 ranking uses a documented three-seed suite derived
+deterministically from the requested baseline seed. Baseline and candidate are
+paired within each seed and per-seed evidence is retained; the aggregate is not
+described as a statistical confidence interval. The product calls the output
+an `optimized candidate` or `best-tested candidate`, never a globally optimal
+layout.
 
 ## Engine model
 
