@@ -1,3 +1,4 @@
+import { createBusinessLedger } from "./businessTimeline";
 import type {
   Id,
   SimulationEvent,
@@ -100,6 +101,7 @@ export function deriveSimulationMetrics(
     });
   }
 
+  const business = createBusinessLedger(vendors.map((v) => v.id));
   const waitingByAttendee = new Map<Id, WaitingMembership>();
   const serviceByAttendee = new Map<Id, ActiveService>();
   const exitedAttendees = new Set<Id>();
@@ -165,9 +167,12 @@ export function deriveSimulationMetrics(
           Number.isFinite(event.missedSaleValue) && event.missedSaleValue >= 0,
           "invalid missed-sale value",
         );
-        const missed = (metrics.missedSales ??= { count: 0, value: 0 });
-        missed.count += 1;
-        missed.value += event.missedSaleValue;
+        business.apply(event);
+        const snapshot = business.get(event.vendorId);
+        metrics.missedSales = {
+          count: snapshot.missedSales,
+          value: snapshot.missedSaleValue,
+        };
         break;
       }
       case "spawn":
@@ -268,7 +273,8 @@ export function deriveSimulationMetrics(
         );
         closeService(event.attendeeId, event.timeSeconds);
         metrics.purchases += 1;
-        metrics.revenue += event.amount;
+        business.apply(event);
+        metrics.revenue = business.get(event.vendorId).revenue;
         totalPurchases += 1;
         totalRevenue += event.amount;
         break;

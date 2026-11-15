@@ -225,16 +225,20 @@ export default function PlaybackView({
         className="stall-statistics"
         aria-labelledby="stall-revenue-heading"
       >
-        <h3 id="stall-revenue-heading">Stall performance · full run</h3>
+        <h3 id="stall-revenue-heading">
+          Stall performance · {formatTime(frame?.timeSeconds ?? 0)}
+        </h3>
         <p className="statistics-context">
-          Final {result.settings.durationSeconds / 60}-minute results · amounts
-          in display currency units. Totals stay fixed while playback plays or
-          scrubs.
+          Recorded earnings and missed sales at the selected playback moment, in
+          display currency units. Values follow play, pause, restart and
+          scrubbing.
         </p>
-        {result.vendorMetrics.length ? (
+        {frame?.vendors.length ? (
           <div className="vendor-table-wrap">
             <table className="statistics-table">
-              <caption>Final stall revenue · full run</caption>
+              <caption>
+                Stall revenue at {formatTime(frame?.timeSeconds ?? 0)}
+              </caption>
               <thead>
                 <tr>
                   <th scope="col">Stall</th>
@@ -250,7 +254,7 @@ export default function PlaybackView({
                 </tr>
               </thead>
               <tbody>
-                {result.vendorMetrics.map((metric) => (
+                {frame.vendors.map((metric) => (
                   <tr key={metric.vendorId}>
                     <th scope="row">
                       {festival.vendors.find(
@@ -258,13 +262,19 @@ export default function PlaybackView({
                       )?.name ?? metric.vendorId}
                     </th>
                     <td className="numeric revenue-value">
-                      {formatCurrencyUnits(metric.revenue)}
+                      {metric.cumulativeRevenue === undefined
+                        ? "Unavailable"
+                        : formatCurrencyUnits(metric.cumulativeRevenue)}
                     </td>
                     <td className="numeric">
-                      {(metric.missedSales?.count ?? 0).toLocaleString("en-US")}
+                      {metric.cumulativeMissedSales === undefined
+                        ? "Unavailable"
+                        : metric.cumulativeMissedSales.toLocaleString("en-US")}
                     </td>
                     <td className="numeric missed-value">
-                      {formatCurrencyUnits(metric.missedSales?.value ?? 0)}
+                      {metric.cumulativeMissedSaleValue === undefined
+                        ? "Unavailable"
+                        : formatCurrencyUnits(metric.cumulativeMissedSaleValue)}
                     </td>
                   </tr>
                 ))}
@@ -284,10 +294,15 @@ export default function PlaybackView({
         frustrated for 15 simulated seconds after leaving a long or full queue.
       </p>
       <details>
-        <summary>Every missed sale · full-run ledger</summary>
+        <summary>Missed sales up to this moment</summary>
         <ul>
           {result.events
-            .filter((event) => event.type === "missed_sale")
+            .filter(
+              (event) =>
+                event.type === "missed_sale" &&
+                frame !== undefined &&
+                event.timeSeconds <= frame.timeSeconds,
+            )
             .map(
               (event, index) =>
                 event.type === "missed_sale" && (

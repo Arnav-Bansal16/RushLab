@@ -82,3 +82,21 @@ and modeled missed-sale value remain separate full-run engine values. Browser
 inspection at 360 seconds showed six frustrated guests and the cleaned table.
 Verification: npm run verify passes lint, types, 180 tests and production build.
 No simulation or shared-contract changes in this presentation update.
+
+## Playback-paced business statistics
+
+The earlier fixed full-run stall table is superseded by the user's request for
+statistics to follow demo playback. Vendor frames now optionally include
+cumulativeRevenue, cumulativeMissedSales and cumulativeMissedSaleValue. An
+analytics-owned single-pass event ledger generates these recorded snapshots;
+the final metrics reducer shares the same business accumulator. UI formats
+frame values only. Legacy frames without these values display Unavailable
+instead of leaking final totals or inventing zeros. Final result metrics remain
+unchanged for future dashboard consumers. The missed-sale ledger also filters
+out entries after the selected timestamp.
+
+Browser verification: zero at 0:00, intermediate values at 6:00, all values
+zero after Restart, fresh demo starts at zero and plays. Tests cover exact event
+boundaries, immutable inputs, determinism, restart and final frame agreement
+with final vendor metrics. npm run verify passes lint, types, 182 tests and build.
+This additive frame contract is included in the branch's required joint review.

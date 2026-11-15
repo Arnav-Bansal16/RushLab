@@ -241,21 +241,33 @@ it("updates vendor values and their timestamp from consecutive playback frames",
   expect(first.vendors[0]).toEqual(base);
 });
 
-it("shows final engine revenue unchanged by the initial playback frame", () => {
+it("shows recorded-moment revenue without leaking the final engine totals", () => {
   const result: SimulationResult = structuredClone(demoSimulationResult);
   result.vendorMetrics[0].revenue = 1234.56;
   result.frames[0].vendors[0].cumulativeSales = 0;
+  Object.assign(result.frames[0].vendors[0], {
+    cumulativeRevenue: 0,
+    cumulativeMissedSales: 0,
+    cumulativeMissedSaleValue: 0,
+  });
   const html = renderToStaticMarkup(
     createElement(PlaybackView, { festival: demoFestival, result }),
   );
-  expect(html).toContain("1,234.56");
-  expect(html).toContain("Final stall revenue");
+  expect(html).not.toContain("1,234.56");
+  expect(html).toContain("Stall revenue at");
+  expect(html).toContain("0.00");
   expect(html).toContain("not profit or a forecast");
   expect(result.frames[0].vendors[0].cumulativeSales).toBe(0);
 });
 
 it("shows full queues, supplied missed-sale values and the reason for each frustrated guest", () => {
   const result: SimulationResult = structuredClone(demoSimulationResult);
+  result.frames[0].timeSeconds = 5;
+  Object.assign(result.frames[0].vendors[0], {
+    cumulativeRevenue: 0,
+    cumulativeMissedSales: 1,
+    cumulativeMissedSaleValue: 17,
+  });
   const vendor = result.vendorMetrics[0];
   vendor.missedSales = { count: 1, value: 17 };
   result.events.push({

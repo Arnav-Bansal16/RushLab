@@ -71,6 +71,10 @@ export interface AttendeeFrameState {
   remainingBudget?: number;
 }
 export interface VendorFrameState {
+  /** Event-derived values through this recorded timestamp; absent on legacy frames. */
+  cumulativeRevenue?: number;
+  cumulativeMissedSales?: number;
+  cumulativeMissedSaleValue?: number;
   queueFull?: boolean;
   vendorId: Id;
   queueLength: number;

@@ -12,7 +12,7 @@ import type {
   Vendor,
 } from "../domain";
 import { resolveBehaviorSettings } from "../domain";
-import { deriveSimulationMetrics } from "../analytics/metrics";
+import { deriveSimulationMetrics, withBusinessSnapshots } from "../analytics/metrics";
 import {
   assignStableIntent,
   createAttendeeChoiceStream,
@@ -971,7 +971,7 @@ export const runSimulation: RunSimulation = (festival, settings) => {
     festivalId: festival.id,
     settings: resolvedSettings,
     attendeeProfiles,
-    frames,
+    frames: withBusinessSnapshots(events, frames, vendors),
     events,
     destinationMetrics: [],
     destinationTransitions: [],
