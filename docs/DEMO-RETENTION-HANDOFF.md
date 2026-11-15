@@ -133,3 +133,10 @@ Browser: three real 300-guest demos used different seeds; successive final
 summaries changed from 60 purchases / 329 revenue to 65 / 363. At 1440px,
 playback/results measured about 751/577px; at 390px both stacked at 320px and
 document width remained 390. No engine randomness or contract changes.
+
+### Demo comparison removal
+
+Removed the entire illustrative Before and after section from the demo report,
+including its 20% targets and explanatory text. Final run summary and layout
+issues remain visible. Non-demo calculated comparison evidence is unchanged.
+Earlier references above to visible demo targets describe prior behavior.
