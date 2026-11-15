@@ -413,3 +413,55 @@
     padding: 12px 8px;
   }
 }
+
+/* Use wide screens for evidence beside playback, rather than empty map margins. */
+@media (min-width: 1200px) {
+  .playback-workspace:has(.recorded-run-panel) {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    align-items: start;
+    gap: 18px;
+    padding: 18px;
+  }
+  .playback-workspace > header,
+  .playback-workspace > .run-settings,
+  .playback-workspace > .vendor-demo-start,
+  .playback-workspace > .run-errors,
+  .playback-workspace > .run-warnings,
+  .playback-workspace > .prior-run-note {
+    grid-column: 1 / -1;
+  }
+  .recorded-run-panel {
+    min-width: 0;
+  }
+  .recorded-run-panel .demo-context {
+    margin-top: 0;
+  }
+  .recorded-run-panel .playback-result {
+    margin-top: 0;
+    padding-top: 12px;
+  }
+  .recorded-run-panel .playback-map {
+    height: auto;
+    aspect-ratio: 8 / 5;
+    min-height: 280px;
+  }
+  .playback-workspace > .final-results {
+    margin-top: 0;
+    padding: 16px;
+  }
+  .playback-workspace .final-summary {
+    gap: 8px;
+  }
+  .playback-workspace .final-summary > div {
+    padding: 10px;
+    min-width: 0;
+  }
+  .playback-workspace .final-summary dd {
+    font-size: clamp(16px, 1.5vw, 24px);
+    overflow-wrap: anywhere;
+  }
+  .playback-workspace .final-summary dt {
+    font-size: 11px;
+  }
+}

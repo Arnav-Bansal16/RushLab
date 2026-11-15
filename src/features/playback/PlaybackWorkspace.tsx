@@ -2,11 +2,12 @@
 import BehaviorControls, {
   readBehavior,
 } from "../simulation-settings/BehaviorControls";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { LayoutOptimization, SimulationSettings } from "../../domain";
 import type { LayoutDocument } from "../editor/layout";
 import { executeRun, type ActiveRun } from "./run";
-import { createFestivalDemo, festivalDemoSettings } from "./vendorDemo";
+import { createFestivalDemo } from "./vendorDemo";
+import { freshDemoSettings } from "./demoSeed";
 import PlaybackView, { RunMessages } from "./PlaybackView";
 import "./playback.css";
 import { evaluateCapacityScenario } from "../dashboard/evaluateCapacityScenario";
@@ -44,6 +45,7 @@ export default function PlaybackWorkspace({
 }: {
   layout: LayoutDocument;
 }) {
+  const lastDemoSeed = useRef<number | undefined>(undefined);
   const [active, setActive] = useState<{
     run: ActiveRun;
     id: number;
@@ -178,9 +180,11 @@ export default function PlaybackWorkspace({
         <button
           type="button"
           className="secondary"
-          onClick={() =>
-            startRun(createFestivalDemo(), festivalDemoSettings, true)
-          }
+          onClick={() => {
+            const settings = freshDemoSettings(lastDemoSeed.current);
+            lastDemoSeed.current = settings.seed;
+            startRun(createFestivalDemo(), settings, true);
+          }}
         >
           Try the 8-vendor demo
         </button>
@@ -193,7 +197,7 @@ export default function PlaybackWorkspace({
         </p>
       )}
       {active ? (
-        <div key={active.id}>
+        <div key={active.id} className="recorded-run-panel">
           {active.example && (
             <div className="demo-context" role="note">
               <strong>Watching the 8-vendor example</strong>

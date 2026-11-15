@@ -129,6 +129,7 @@ export default function TemplateToolbar({
       setBusy(false);
     }
   }
+  if (!configured) return null;
   return (
     <section className={styles.toolbar} aria-label="Cloud layout templates">
       <div>

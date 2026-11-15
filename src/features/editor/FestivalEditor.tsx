@@ -335,8 +335,8 @@ export default function FestivalEditor() {
             <span>Grid: 10 m · All components can be moved or deleted</span>
             <span>Changes stay in this session until exported.</span>
           </div>
-          <div className="simulation-handoff">
-            <h3>Simulation input</h3>
+          <details className="simulation-handoff">
+            <summary>Simulation input &amp; JSON export</summary>
             {simulationIssues.length ? (
               <ul>
                 {simulationIssues.map((issue) => (
@@ -363,7 +363,7 @@ export default function FestivalEditor() {
             >
               Export simulation JSON
             </button>
-          </div>
+          </details>
         </section>
         <aside className="inspector properties">
           <p className="eyebrow">LAYOUT DETAILS</p>

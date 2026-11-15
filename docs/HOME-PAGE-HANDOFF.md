@@ -37,3 +37,20 @@ URL: https://www.waitlistr.com/lists/9f7e9a3a/rush-lab
 Verified all three destination URLs and mobile layout at 390 × 844 (document
 width 390). Full verify passed lint, types, 296 tests / 36 files and build.
 Local home page was left open. No deployment was performed.
+
+## Editor-space follow-up
+
+The screenshot's editor region now uses one 280px tools rail (creation above
+inspector) with a larger venue panel alongside it at desktop widths. MapCanvas
+uses the actual venue aspect ratio, bounded height and 16px rendering inset;
+world coordinates and editing transforms are unchanged. Simulation-input/JSON
+controls are a native collapsed disclosure. The unconfigured cloud toolbar is
+not rendered; its draft-restoration hook still runs. Configured cloud controls
+remain available. Header, map-footer and panel padding are tighter.
+
+Full verify passed 299 tests, lint, types and build. Browser observed the
+rearranged tools, a roughly 1088px-wide editor map at 1439 CSS px, successful
+example loading and Taco Stand selection. The preview was heavily zoomed out,
+so responsive observations used measured CSS widths rather than assuming the
+viewport override equaled CSS pixels. Intermediate 727px width had no document
+overflow. Temporary viewport override cleared. No simulation changes.
