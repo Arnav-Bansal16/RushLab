@@ -140,3 +140,10 @@ Removed the entire illustrative Before and after section from the demo report,
 including its 20% targets and explanatory text. Final run summary and layout
 issues remain visible. Non-demo calculated comparison evidence is unchanged.
 Earlier references above to visible demo targets describe prior behavior.
+
+### Statistics restored without introductory text
+
+Restored the demo improvement statistics table at the user’s request, omitting
+the Before and after heading and the explanatory paragraph. Table columns still
+identify Before (simulated) and After (illustrative target); target calculations
+and canonical run metrics are unchanged. This supersedes the removal above.

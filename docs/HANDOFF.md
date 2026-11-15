@@ -22,9 +22,10 @@ The follow-up branch `codex/demo-randomization-and-compact-layout` contains:
 The main demo flow is `/` → `/login` → `/workspace` → **Try the 8-vendor demo**.
 Username and password are optional demo inputs and are never read or stored.
 The demo uses 300 guests, normal patience, three waiting spaces per vendor and
-retention until closing. The illustrative before/after target section has been
-removed from the demo; the final run summary and layout issues remain visible.
-Non-demo reports retain their calculated comparison evidence.
+retention until closing. The demo improvement statistics table is visible without
+a Before and after heading or introductory paragraph. Its columns identify
+simulated before-values and illustrative after-targets (approximately 20%
+improvements). Non-demo reports retain calculated comparison evidence.
 
 Supabase is not configured. Real authentication, cross-device templates and
 two-account RLS isolation require setup and live verification; see
