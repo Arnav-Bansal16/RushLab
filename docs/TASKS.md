@@ -16,11 +16,11 @@ both-developer approval. Do not treat old draft-status handoffs as current gates
 | SIM-02 / UI-02 / ANA-01 / CON-02 / SIM-03 | merged baseline | preserve invariants during later integration |
 | UI-04 controls and SIM-03 integration | implementation merged in #10 | UI-04-QA and PERF-01 acceptance below |
 | EXT-01 queue retention / missed sales / playback business snapshots | implemented and merged in #11 | preserve semantics; no duplicate implementation task |
-| ANA-03 destination analytics | not implemented | next backend feature |
+| ANA-03 destination analytics | committed on `codex/ana-03-destination-metrics` | merge/integrate without reopening its formulas |
 | UI-03 full results dashboard | not implemented | consume final result, not selected-frame demo values |
 | INT-01 / ANA-02 / REL-01 | not implemented | follow dependencies and release checks |
 
-Next feature path: `ANA-03 → UI-03 + INT-01 → ANA-02 → REL-01`.
+Next feature path: `ANA-03 merge → INT-01 → ANA-02 → UI-03 → REL-01`.
 UI-04-QA and PERF-01 run alongside feature work and must close before release.
 The original graph/estimates below describe dependencies, not remaining effort
 or a claim that already merged tasks need rebuilding.
@@ -42,13 +42,13 @@ SIM-02 + UI-02 + ANA-01
        │    └─> ANA-03 destination visit/dwell metrics [B]
        └─> UI-04 vendor price + advanced behavior controls [A]
 
-ANA-01 + ANA-03 ─> UI-03 dashboard [A]
 SIM-03 + UI-04 + ANA-03 ─> INT-01 scenario comparison [J]
-ANA-01 + INT-01 -> ANA-02 recommendations [B, A reviews]
+ANA-01 + ANA-03 + INT-01 -> ANA-02 issues + bounded candidate layouts [B, A reviews]
+ANA-01 + ANA-03 + ANA-02 -> UI-03 dashboard + issues report [A]
 UI-02 + UI-03 + INT-01 + ANA-02 -> REL-01 demo hardening/deploy [J]
 ```
 
-Original implementation critical path: `CON-01 → SIM-01 → SIM-02 → ANA-01 → CON-02 → SIM-03 → ANA-03 → INT-01 → REL-01`.
+Revised implementation critical path: `CON-01 → SIM-01 → SIM-02 → ANA-01 → CON-02 → SIM-03 → ANA-03 → INT-01 → ANA-02 → UI-03 → REL-01`.
 
 ## First five coding tasks
 
@@ -250,15 +250,85 @@ and performance acceptance remain under UI-04-QA/PERF-01, not marked complete.
 
 ## Remaining backlog
 
-| ID      | Description                            | Owner / agent            | Files owned                                        | Depends on                    | Output and acceptance                                                                              | Effort | Checkpoint     |
-| ------- | -------------------------------------- | ------------------------ | -------------------------------------------------- | ----------------------------- | -------------------------------------------------------------------------------------------------- | -----: | -------------- |
-| UI-03   | Metrics dashboard                      | A / frontend engineer    | `src/features/dashboard/**`                        | ANA-01, ANA-03                | Final-result views use ActiveRun snapshots; vendor/destination zero and missing states; no canonical UI math            |   2–3h | CP3B           |
-| INT-01  | Baseline vs alternative                | J / integration reviewer | narrow composition + `src/analytics/comparison/**` | SIM-03, UI-04, ANA-01, ANA-03 | Common profiles/seed/duration/demand/behavior/model semantics; incompatible runs warn or reject; visible deltas |     3h | CP4 comparison |
-| ANA-02  | Placement/capacity rules               | B, A UX review           | `src/analytics/recommendations/**`                 | ANA-01, INT-01                | Legal candidate positions; evidence/threshold on every recommendation                              |     3h | CP4            |
-| PERF-01 | 300-agent benchmark and payload budget | B engine, A renderer     | tests/scripts only                                 | CP3                           | Simulation <2s target; frame payload documented; no O(n²) surprise without note                    |   1–2h | feature freeze |
-| REL-01  | Demo hardening and Vercel preview      | J / integration reviewer | config, docs, smoke tests                          | all P0 + UI-04-QA + PERF-01     | `npm run verify`; preview works without signup; demo script succeeds                               |   3–4h | CP5 release    |
-| P1-CSV  | Validated CSV import                   | A                        | new import feature                                 | P0 deployed                   | Explicit column mapping/errors; no silent coercion                                                 |     3h | optional       |
-| P1-AI   | Explain structured comparison          | A                        | server route + explanation UI                      | P0 deployed, API approval     | No raw secrets/client key; calculations unchanged; graceful no-key mode                            |   3–4h | optional       |
+ANA-03 is committed on its feature branch. The requirements below consume its
+event-derived destination metrics and do not reopen its formulas or ownership.
+
+| ID      | Description                                | Owner / agent            | Files owned                                        | Depends on                    | Output and acceptance                                                                                                                                         | Effort | Checkpoint     |
+| ------- | ------------------------------------------ | ------------------------ | -------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | -----: | -------------- |
+| INT-01  | Baseline vs alternative                    | J / integration reviewer | narrow composition + `src/analytics/comparison/**` | SIM-03, UI-04, ANA-01, ANA-03 | Common profiles, seed, duration, demand, behavior and model semantics; incompatible inputs reject or warn; safe absolute and percent deltas                  |   4–5h | CP4 comparison |
+| ANA-02  | Issues report + bounded candidate layouts  | B, A UX review           | `src/analytics/recommendations/**`                 | ANA-01, ANA-03, INT-01        | Deterministic evidence-backed findings; legal editable candidate festivals; bounded paired evaluation; best-tested candidate with raw before/after statistics |   6–9h | CP4 optimize   |
+| UI-03   | Metrics dashboard and layout issues report | A / frontend engineer    | `src/features/dashboard/**`                        | ANA-01, ANA-03, ANA-02        | Final-result views use ActiveRun snapshots; render issue evidence/actions, candidate changes and deltas; no canonical UI math                                |   4–6h | CP4 report     |
+| PERF-01 | 300-agent and candidate-search budget      | B engine, A renderer     | tests/scripts only                                 | CP4                           | Single-run target measured; bounded search count/runtime and frame payload documented; no unexplained O(n²) behavior                                          |   2–3h | feature freeze |
+| REL-01  | Demo hardening and Vercel preview          | J / integration reviewer | config, docs, smoke tests                          | all P0 + UI-04-QA + PERF-01   | `npm run verify`; preview generates an issues report and editable best-tested candidate without signup; demo script succeeds                                  |   4–5h | CP5 release    |
+| P1-CSV  | Validated CSV import                       | A                        | new import feature                                 | P0 deployed                   | Explicit column mapping/errors; no silent coercion                                                                                                            |     3h | optional       |
+| P1-AI   | Explain structured comparison              | A                        | server route + explanation UI                      | P0 deployed, API approval     | No raw secrets/client key; calculations unchanged; graceful no-key mode                                                                                       |   3–4h | optional       |
+
+### INT-01 comparison requirements
+
+INT-01 remains the canonical comparison primitive for manually edited and
+ANA-02-generated alternatives. It must:
+
+- begin with a small joint review for additive destination-delta and
+  zero-denominator representations needed in shared comparison contracts;
+- compare immutable baseline and alternative festival/settings/result
+  snapshots without mutating either run;
+- preserve EXT-01 queue-retention and missed-sale semantics when checking model
+  compatibility;
+- enforce the fair-comparison guard for seed, attendee profiles, choice-stream
+  inputs, duration, demand, and every behavior assumption;
+- report absolute deltas and percentages for vendor and destination outcomes,
+  with `not applicable` when a percentage denominator is zero;
+- preserve raw metrics alongside any score or summary; and
+- describe every delta as a modeled result, never a forecast.
+
+### ANA-02 issues and candidate-layout requirements
+
+ANA-02 expands the existing placement/capacity recommendation task rather than
+adding an unbounded optimizer. Begin with a small joint review of additions
+needed to shared issue, candidate and evaluation result contracts; do not hide
+public shapes inside UI code.
+
+The issues report deterministically identifies supported operational issues:
+
+- excessive vendor wait, peak queue, abandonment, utilization, stockout, queue
+  frustration, or modeled missed-sale attempts;
+- underused or overloaded vendors and destinations using ANA-01/ANA-03 metrics;
+- uneven visit/dwell patterns or weak destination transitions when supported by
+  explicit thresholds; and
+- invalid or impossible placement recommendations.
+
+Every finding includes a stable ID, category, severity, affected entity IDs,
+metric evidence, threshold, concise rationale, suggested action, and applicable
+model limitation. P0 may label spatial evidence as a `potential congestion
+area`, but it must not claim scientifically validated walkway, collision, or
+crowd-flow bottlenecks because those are not modeled.
+
+Candidate generation and evaluation must:
+
+- produce at most four valid `Festival` snapshots per P0 search by moving
+  vendors and, when recommended, changing supported vendor capacity;
+- preserve stages, entrances, paths, amenities, prices, demand assumptions and
+  every field not named by the recommendation;
+- keep geometry in bounds and outside obstacles, avoid illegal overlaps, and
+  return candidates as editable festival data;
+- use deterministic candidate ordering and no `Math.random()`;
+- evaluate every candidate against its baseline through INT-01 with compatible
+  paired inputs and a documented three-seed suite derived deterministically
+  from the requested baseline seed;
+- retain per-seed results without making a statistical-confidence claim;
+- use a visible documented objective balancing queue/wait, abandonment,
+  stockout, throughput/revenue, destination use, frustration, and modeled
+  missed-sale evidence rather than hiding a revenue-only score;
+- retain raw absolute and percentage deltas so ranking is auditable; and
+- call the result the `best-tested candidate` or `optimized candidate`, never a
+  globally optimal layout.
+
+Tests cover stable issue IDs/order, evidence/threshold reconciliation, empty
+and zero-demand layouts, legal placement, the four-candidate cap, deterministic
+generation/ranking, input immutability, zero-denominator deltas, identical
+paired assumptions, rejected incompatible model semantics, and a fixture where
+the best-tested candidate improves its documented objective without requiring
+every individual metric to improve.
 
 ## Parallelism
 
@@ -267,6 +337,10 @@ and performance acceptance remain under UI-04-QA/PERF-01, not marked complete.
   parallel because they own disjoint files.
 - ANA-03 starts after SIM-03 fixes the destination event ledger. UI-03 may use
   the reviewed result fixture while ANA-03 is built.
+- After ANA-03, finish INT-01 before ANA-02 so every generated candidate uses
+  the same fair-comparison rules as a manually edited alternative.
+- UI-03 may build its base metric views while ANA-02 is underway, but the
+  issues/candidate report integration waits for ANA-02's reviewed result shape.
 - Do not parallelize contract changes, comparison compatibility rules, or release integration.
 - Do not let agents concurrently edit `src/domain`, shared fixtures, package files, or the same route.
 
@@ -277,7 +351,10 @@ and performance acceptance remain under UI-04-QA/PERF-01, not marked complete.
 3. **CP2B Behavior contract:** destination/settings/events fixture is jointly approved.
 4. **CP3 Load slice:** 200–300 attendee simulation, playback, and vendor metrics integrate.
 5. **CP3B Behavior slice:** price-sensitive intent mix visibly visits stages, vendors, roaming waypoints, and supported amenities; destination metrics reconcile.
-6. **CP4 Comparison slice:** vendor move/price change yields fair deltas and evidence-backed suggestion under identical behavior assumptions.
+6. **CP4 Comparison and report slice:** a manual alternative and a bounded set
+   of generated candidates use identical modeled assumptions; the UI explains
+   issues, shows evidence, and identifies a best-tested editable candidate with
+   auditable before/after statistics.
 7. **CP5 Feature freeze:** P0 preview deployed; only fixes/polish.
 
 ## Time and risk budget
@@ -286,9 +363,10 @@ The behavior expansion adds approximately 12–20 focused person-hours across tw
 developers. Protect the weekend scope with a default four-stop limit (hard
 configurable maximum six), per-type caps, no revisits by default, nonvendor
 amenities that remain unqueued, and bounded seeded waypoints instead of free
-random walks. Highest risks are contract churn, frame payload/rendering, and
-unfair comparisons; mitigate with CON-02, 1 Hz frames, named streams, and
-shared profiles/intents/preferences/budgets.
+random walks. Highest risks are contract churn, frame payload/rendering, unfair
+comparisons, and candidate-search runtime; mitigate with CON-02, 1 Hz frames,
+named streams, shared profiles/intents/preferences/budgets, a four-candidate
+cap, and the documented three-seed suite.
 
 ## Downstream integration notes
 

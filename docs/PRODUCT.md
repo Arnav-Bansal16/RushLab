@@ -20,23 +20,31 @@ The demo must show business value, not merely animated dots.
 - Plausible waypoint/path movement and deterministic dwell; accurate vendor
   queue, service, purchase, abandonment, and stockout behavior.
 - Sparse playback frames plus vendor revenue, purchases, average wait, peak queue, utilization, and abandonment.
-- Baseline versus one alternative using identical attendee profiles and compatible settings.
-- Rule-based placement/capacity recommendations with metric evidence.
+- Baseline versus manual or generated alternatives using identical attendee
+  profiles and compatible settings.
+- A deterministic layout issues report covering supported operational
+  bottlenecks, underuse, overload, abandonment, stockout, and destination-use
+  concerns, with severity, thresholds, evidence, suggested actions, and model
+  limitations.
+- A small bounded set of legal placement/capacity candidates, plus an editable
+  best-tested candidate and auditable baseline-versus-candidate statistics.
 - Public Vercel demo with no login.
 - Visible assumptions and “modeled estimate” language.
 
 P0 does not require scientifically validated pedestrian dynamics, calibrated
 consumer elasticity, medical-incident prediction, queues at nonvendor
-amenities, multiple vendor purchases per attendee, or global mathematical
-optimization.
+amenities, scientifically validated walkway/collision congestion, or global
+mathematical optimization. A generated layout is the best candidate among a
+small documented search set, not proof of an optimal layout.
 
 ## P1 — only after P0 deploys
 
-- Congestion/activity overlay.
+- Spatial activity overlay and heuristic potential-congestion visualization.
 - Historical/vendor CSV import with validation.
 - Export result JSON/CSV.
 - LLM explanation of structured results; calculations remain deterministic.
-- Better bounded candidate search for recommendations.
+- Broader candidate search, additional placement mutations, and configurable
+  optimization objectives beyond the bounded P0 search.
 - Web Worker only if profiling shows main-thread stalls.
 
 ## P2 — defer
@@ -51,15 +59,17 @@ optimization.
 
 Freeze features when the deployed demo can edit one vendor's placement and
 price, adjust a small set of behavior assumptions, run 200–300 attendees,
-show stage/vendor/amenity movement and vendor outcomes, compare one fair
-alternative, and explain one recommendation. After that, accept only fixes and
-demo polish.
+show stage/vendor/amenity movement and vendor outcomes, produce an issues
+report, compare one fair alternative, and generate an editable best-tested
+candidate with evidence-backed before/after statistics. After that, accept
+only fixes and demo polish.
 
 Cut in this order: LLM, CSV, heatmap, arbitrary path editing, persistence/auth, sophisticated local avoidance. Never cut determinism, event-derived metrics, or scenario comparison.
 
 ## Success criteria
 
-- A judge can move a vendor and understand the modeled business effect in under three minutes.
+- A judge can identify a supported layout issue, inspect its metric evidence,
+  and compare an editable best-tested candidate in under five minutes.
 - Identical inputs and seed produce identical events and metrics.
 - Metrics can be traced to simulation events.
 - The repository stays runnable at every integration checkpoint.
