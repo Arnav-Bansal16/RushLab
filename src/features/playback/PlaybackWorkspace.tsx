@@ -6,7 +6,7 @@ import { useState } from "react";
 import type { SimulationSettings } from "../../domain";
 import type { LayoutDocument } from "../editor/layout";
 import { executeRun, type ActiveRun } from "./run";
-import { createVendorDemo, vendorDemoSettings } from "./vendorDemo";
+import { createFestivalDemo, festivalDemoSettings } from "./vendorDemo";
 import PlaybackView, { RunMessages } from "./PlaybackView";
 import "./playback.css";
 
@@ -160,14 +160,18 @@ export default function PlaybackWorkspace({
         <div>
           <strong>See a busier event first</strong>
           <p>
-            8 vendors · a stage · all three amenity types · 2 entrances · 300
-            guests · a 3-minute preview. Your editor layout stays unchanged.
+            8 vendors · a stage · bathroom, seating and first aid · a marked
+            exit · 300 guests · a 3-minute stay-and-explore preview. Longer
+            dwell, patient queues and no random post-stop exits keep visits
+            inside the festival. Your editor layout stays unchanged.
           </p>
         </div>
         <button
           type="button"
           className="secondary"
-          onClick={() => startRun(createVendorDemo(), vendorDemoSettings, true)}
+          onClick={() =>
+            startRun(createFestivalDemo(), festivalDemoSettings, true)
+          }
         >
           Try the 8-vendor demo
         </button>
@@ -185,11 +189,15 @@ export default function PlaybackWorkspace({
             <div className="demo-context" role="note">
               <strong>Watching the 8-vendor example</strong>
               <p>
-                Watch guests arrive, wait in amber, receive service in green,
-                and leave in purple. The table follows the same recorded moment.
-                Guests can also roam and dwell at the stage, seating, restrooms
-                and first aid. The engine calculates choices, visits, queues,
-                purchases and stockouts from illustrative assumptions.
+                Guests moving between stops are orange; queues are amber,
+                service is green, and guests leaving the festival are magenta.
+                Gray faded guests have exited. The table follows the same
+                recorded moment. Guests can also roam and dwell at the stage,
+                seating, restrooms and first aid. The engine calculates choices,
+                visits, queues, purchases and stockouts from illustrative
+                assumptions. The marked entrance/exit is the engine’s actual
+                departure point. Longer visits reduce early exits; the recording
+                still ends after three minutes.
               </p>
             </div>
           )}

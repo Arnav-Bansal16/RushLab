@@ -106,3 +106,45 @@ export const vendorDemoSettings: SimulationSettings = {
   frameIntervalSeconds: 1,
   walkingSpeedMetersPerSecond: 1.4,
 };
+
+/** A visitor-retention demo, separate from the stockout regression example above. */
+export function createFestivalDemo() {
+  const layout = createVendorDemo();
+  layout.name = "Riverside Festival · stay and explore";
+  layout.entrances = [
+    {
+      ...layout.entrances[0],
+      name: "Main entrance / EXIT",
+      position: { x: 8, y: 50 },
+    },
+  ];
+  layout.amenities!.find((item) => item.type === "restroom")!.name = "Bathroom";
+  layout.vendors = layout.vendors.map((vendor, index) => ({
+    ...vendor,
+    averagePrice: [5, 7, 3, 4, 8, 3, 10, 5][index],
+    serviceTimeSeconds: 30,
+    servers: 1,
+    inventory: null,
+    queueLimit: null,
+  }));
+  return layout;
+}
+export const festivalDemoSettings: SimulationSettings = {
+  ...vendorDemoSettings,
+  behavior: {
+    maximumItineraryStops: 6,
+    maximumVendorStops: 6,
+    maximumStageStops: 6,
+    maximumAmenityStops: 6,
+    maximumVisitsPerDestination: 2,
+    deterministicExitProbabilityAfterStop: 0,
+    minimumRemainingTimeSeconds: 0,
+    queueToleranceMultiplier: 5,
+    dwellDurationSeconds: {
+      stage: { minimum: 90, maximum: 180 },
+      seating: { minimum: 90, maximum: 180 },
+      restroom: { minimum: 30, maximum: 60 },
+      first_aid: { minimum: 60, maximum: 120 },
+    },
+  },
+};

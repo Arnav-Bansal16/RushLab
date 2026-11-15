@@ -7,7 +7,7 @@ import { demoFestival } from "@/fixtures/demoFestival";
 import { downloadLayoutImage } from "./exportImage";
 import BehaviorAttributes from "./BehaviorAttributes";
 import ComponentForm from "./ComponentForm";
-import { createVendorDemo } from "../playback/vendorDemo";
+import { createFestivalDemo } from "../playback/vendorDemo";
 import PlaybackWorkspace from "../playback/PlaybackWorkspace";
 import {
   snapshotFestival,
@@ -266,7 +266,7 @@ export default function FestivalEditor() {
             className="secondary"
             onClick={() => {
               commit(
-                createVendorDemo(),
+                createFestivalDemo(),
                 "Behavior example loaded. Edit prices, attraction and dwell assumptions before running.",
               );
               setSelectedId("");

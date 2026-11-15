@@ -423,8 +423,8 @@ export default function MapCanvas({
                 cornerRadius={3}
               />
               <Text
-                text={labels[vendor.id] ?? vendor.name}
-                y={-22}
+                text={`${labels[vendor.id] ?? vendor.name}\nAvg. price: ${vendor.averagePrice} currency units`}
+                y={-34}
                 x={-32}
                 width={vendor.size.width * s + 64}
                 align="center"

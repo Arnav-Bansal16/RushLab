@@ -197,3 +197,30 @@ visit/dwell/transition metrics from events; UI-03 displays final vendor/destinat
 metrics; INT-01 compares compatible scenarios with common attendee assumptions;
 then recommendations and release/demo hardening. UI must not fill empty
 ANA-03 arrays with inferred frame-derived summaries.
+
+## Stay-and-explore demo update
+
+The featured demo now uses `createFestivalDemo`/`festivalDemoSettings`. It has a
+single main entrance/EXIT at the engine's actual departure location, a labeled
+Bathroom, visible stall average prices (display currency units), unlimited stock,
+one server per stall with 30-second service, and the approved behavior controls
+configured for longer dwell and patient queues. Random post-stop exit probability
+is zero; all stop bounds remain valid. The original stockout regression example
+is retained separately. Recording-end cleanup still exits attendees; this does
+not represent an early departure during the visit.
+
+Color presentation uses frame status directly, with orange for walking attendees
+whose engine-provided completedStops is positive, magenta for leaving the festival,
+amber for waiting and green for service. No frontend choices, routes or positions
+are invented. Real queues form under load; an available server can still serve
+someone immediately. A separate physical exit route remains outside the public
+contract; the visible exit is the existing gate used by the engine.
+
+`festivalDemo.test.ts` checks determinism, bathroom/exit inputs, real queue joins
+and waiting frames, and fewer than 10% exits among spawned attendees before 150
+seconds in the seed-42 demo. These are illustrative demo settings, not calibration
+or a forecast of real visitor retention.
+
+Demo verification: npm run verify passes lint, types, 176 tests and production build.
+Browser smoke at 108 seconds shows bathroom/exit/stall price labels and real
+waiting counts (including 7 and 8 waiting at stalls). Preview left paused there.

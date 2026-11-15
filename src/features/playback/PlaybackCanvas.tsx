@@ -1,19 +1,10 @@
 "use client";
 import { memo, useEffect, useRef, useState } from "react";
-import {
-  Stage,
-  Layer,
-  Rect,
-  Line,
-  Text,
-  Circle,
-  Group,
-  Shape,
-} from "react-konva";
+import { Stage, Layer, Rect, Line, Text, Group, Shape } from "react-konva";
 import type Konva from "konva";
 import type { Festival, SimulationFrame } from "../../domain";
 import { fitViewport, metersToPixels, type Viewport } from "../editor/geometry";
-import { statusStyles } from "./presentation";
+import { attendeeStyle } from "./presentation";
 
 /** A head, torso, arms and legs, drawn as one lightweight canvas shape per guest. */
 export function drawPerson(context: Konva.Context, shape: Konva.Shape) {
@@ -59,8 +50,8 @@ export function AttendeeMarks({
           sceneFunc={drawPerson}
           scaleX={Math.max(0.65, Math.min(1.15, transform.scale * 0.18))}
           scaleY={Math.max(0.65, Math.min(1.15, transform.scale * 0.18))}
-          fill={statusStyles[person.status].color}
-          opacity={statusStyles[person.status].opacity}
+          fill={attendeeStyle(person).color}
+          opacity={attendeeStyle(person).opacity}
           listening={false}
           perfectDrawEnabled={false}
         />
@@ -194,7 +185,16 @@ function PlaybackCanvas({
           <AmenityMarks festival={festival} transform={transform} />
           {festival.entrances.map((item) => (
             <Group key={item.id} {...point(item.position)}>
-              <Circle radius={6} fill="#247963" />
+              <Rect x={-13} y={-8} width={26} height={16} fill="#a42640" />
+              <Text
+                text="EXIT"
+                x={-13}
+                y={-5}
+                width={26}
+                align="center"
+                fill="white"
+                fontSize={10}
+              />
               <Text
                 text={item.name}
                 x={-20}
@@ -216,9 +216,9 @@ function PlaybackCanvas({
                   fill={state?.inventoryRemaining === 0 ? "#a5afa2" : "#dfaa70"}
                 />
                 <Text
-                  text={item.name}
+                  text={`${item.name}\nAvg. price: ${item.averagePrice} currency units`}
                   x={-35}
-                  y={-18}
+                  y={-30}
                   width={item.size.width * s + 70}
                   align="center"
                   fontSize={11}
