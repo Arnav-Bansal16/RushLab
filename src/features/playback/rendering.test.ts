@@ -236,3 +236,16 @@ it("updates vendor values and their timestamp from consecutive playback frames",
   expect(render(next, false)).toContain("Paused");
   expect(first.vendors[0]).toEqual(base);
 });
+
+it("shows final engine revenue unchanged by the initial playback frame", () => {
+  const result = structuredClone(demoSimulationResult);
+  result.vendorMetrics[0].revenue = 1234.56;
+  result.frames[0].vendors[0].cumulativeSales = 0;
+  const html = renderToStaticMarkup(
+    createElement(PlaybackView, { festival: demoFestival, result }),
+  );
+  expect(html).toContain("1,234.56");
+  expect(html).toContain("Final stall revenue");
+  expect(html).toContain("not profit or a forecast");
+  expect(result.frames[0].vendors[0].cumulativeSales).toBe(0);
+});

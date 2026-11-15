@@ -224,3 +224,15 @@ or a forecast of real visitor retention.
 Demo verification: npm run verify passes lint, types, 176 tests and production build.
 Browser smoke at 108 seconds shows bathroom/exit/stall price labels and real
 waiting counts (including 7 and 8 waiting at stalls). Preview left paused there.
+
+### Ten-minute demo and stall revenue
+
+The featured demo now runs 600 simulation seconds at initial playback speed 1×.
+Playback displays final per-vendor revenue directly from result.vendorMetrics;
+these full-run modeled totals are labeled separately and never recomputed from
+frames, prices or events in UI. They remain fixed while scrubbing. The previous
+three-minute demo description above is historical. Browser smoke confirmed
+10:00 duration, 1× speed and all eight stall revenue rows. npm run verify passes
+lint, types, 177 tests and production build. Queue patience timeout still exits
+the festival; a full finite queue can trigger another destination choice. The
+featured demo has unlimited queue capacity and multiplier 5 for patience.

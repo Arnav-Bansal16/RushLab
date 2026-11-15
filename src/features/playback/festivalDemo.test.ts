@@ -4,6 +4,7 @@ import { executeRun } from "./run";
 import { attendeeStyle, betweenStopsStyle, statusStyles } from "./presentation";
 it("keeps the demo busy inside the festival, with real waiting and a canonical bathroom/exit", () => {
   const layout = createFestivalDemo();
+  expect(festivalDemoSettings.durationSeconds).toBe(600);
   expect(
     layout.amenities!.some(
       (a) => a.type === "restroom" && a.name === "Bathroom",

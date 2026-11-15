@@ -161,7 +161,7 @@ export default function PlaybackWorkspace({
           <strong>See a busier event first</strong>
           <p>
             8 vendors · a stage · bathroom, seating and first aid · a marked
-            exit · 300 guests · a 3-minute stay-and-explore preview. Longer
+            exit · 300 guests · a 10-minute stay-and-explore preview. Longer
             dwell, patient queues and no random post-stop exits keep visits
             inside the festival. Your editor layout stays unchanged.
           </p>
@@ -197,13 +197,13 @@ export default function PlaybackWorkspace({
                 visits, queues, purchases and stockouts from illustrative
                 assumptions. The marked entrance/exit is the engine’s actual
                 departure point. Longer visits reduce early exits; the recording
-                still ends after three minutes.
+                still ends after ten minutes.
               </p>
             </div>
           )}
           <PlaybackView
             autoPlay
-            initialSpeed={active.example ? 4 : 1}
+            initialSpeed={1}
             festival={active.run.festivalSnapshot}
             result={active.run.result}
             warnings={active.run.warnings}

@@ -205,6 +205,47 @@ export default function PlaybackView({
         disabled={!frames.length}
         onAction={dispatch}
       />
+      <section aria-labelledby="stall-revenue-heading">
+        <h3 id="stall-revenue-heading">Money made by each stall · full run</h3>
+        <p>
+          Modeled revenue in display currency units, returned by the engine for
+          the full {result.settings.durationSeconds / 60}-minute run. These
+          final totals stay fixed while playback plays or scrubs; they are
+          revenue, not profit or a forecast.
+        </p>
+        {result.vendorMetrics.length ? (
+          <div className="vendor-table-wrap">
+            <table>
+              <caption>Final stall revenue · full run</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Stall</th>
+                  <th scope="col">Revenue (display currency units)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {result.vendorMetrics.map((metric) => (
+                  <tr key={metric.vendorId}>
+                    <th scope="row">
+                      {festival.vendors.find(
+                        (vendor) => vendor.id === metric.vendorId,
+                      )?.name ?? metric.vendorId}
+                    </th>
+                    <td>
+                      {metric.revenue.toLocaleString("en-US", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p>No stall revenue results in this run.</p>
+        )}
+      </section>
       <StatusLegend />
       <ul aria-label="Map destination legend" className="status-legend">
         {festival.stages.map((item) => (

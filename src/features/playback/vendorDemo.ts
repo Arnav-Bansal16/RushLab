@@ -131,6 +131,7 @@ export function createFestivalDemo() {
 }
 export const festivalDemoSettings: SimulationSettings = {
   ...vendorDemoSettings,
+  durationSeconds: 600,
   behavior: {
     maximumItineraryStops: 6,
     maximumVendorStops: 6,
