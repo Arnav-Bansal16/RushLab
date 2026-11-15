@@ -1,5 +1,8 @@
 # Current implementation and expanded P0 handoff
 
+The implemented SIM-03 boundary and the concrete remaining UI-04 work are
+documented in [SIM-03 to UI-04 integration handoff](./SIM-03-UI-04-HANDOFF.md).
+
 ## Current checkpoint
 
 - UI-01, SIM-01, and SIM-02 provide the editor, deterministic profiles and
