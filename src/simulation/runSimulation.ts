@@ -12,7 +12,7 @@ import type {
   Vendor,
 } from "../domain";
 import { resolveBehaviorSettings } from "../domain";
-import { deriveSimulationMetrics } from "../analytics/metrics";
+import { deriveSimulationMetrics, withBusinessSnapshots } from "../analytics/metrics";
 import {
   assignStableIntent,
   createAttendeeChoiceStream,
@@ -348,6 +348,7 @@ function snapshotFrame(
           target,
           completedStops,
           remainingBudget,
+          queueFrustration,
         }) => ({
           id,
           position: { ...position },
@@ -356,6 +357,10 @@ function snapshotFrame(
           target: target ? { ...target } : null,
           completedStops: completedStops ?? 0,
           remainingBudget,
+          ...(queueFrustration &&
+          timeSeconds - queueFrustration.timeSeconds < 15
+            ? { queueFrustration: { ...queueFrustration } }
+            : {}),
         }),
       ),
     vendors: vendors.map((vendor) => {
@@ -363,6 +368,9 @@ function snapshotFrame(
       return {
         vendorId: vendor.id,
         queueLength: queue.waiting.length,
+        queueFull:
+          vendor.queueLimit !== null &&
+          queue.waiting.length >= vendor.queueLimit,
         inventoryRemaining: queue.inventoryRemaining,
         cumulativeSales: queue.cumulativeSales,
       };
@@ -434,14 +442,39 @@ function processServiceCompletions(
   }
 }
 
+/** Abandon this stall, record a modeled opportunity, then choose again within visit bounds. */
+function recordMissedSale(
+  attendee: AttendeeState,
+  vendor: Vendor,
+  reason: "wait_too_long" | "queue_full",
+  timeSeconds: number,
+  stepEvents: SimulationEvent[],
+) {
+  attendee.queueFrustration = {
+    vendorId: vendor.id,
+    reason,
+    timeSeconds,
+    missedSaleValue: vendor.averagePrice,
+  };
+  stepEvents.push({
+    type: "missed_sale",
+    attendeeId: attendee.id,
+    ...attendee.queueFrustration,
+  });
+  attendee.status = "choosing";
+  attendee.target = null;
+  attendee.targetVendorId = null;
+  attendee.route = [];
+  attendee.routeIndex = 0;
+  attendee.roamingWaypointCount = 0;
+}
+
 function processTimeouts(
   timeSeconds: number,
   festival: Festival,
   settings: ResolvedSettings,
   queues: Map<Id, VendorQueueState>,
   attendees: Map<Id, AttendeeState>,
-  entrances: Map<Id, { position: Point }>,
-  movement: RandomStream,
   stepEvents: SimulationEvent[],
 ): void {
   for (const queue of [...queues.values()].sort((left, right) =>
@@ -451,8 +484,10 @@ function processTimeouts(
       const attendee = attendees.get(entry.attendeeId);
       if (!attendee) throw new Error(`Unknown attendee: ${entry.attendeeId}`);
       const tolerance =
-        attendee.profile.queueToleranceSeconds * settings.behavior.queueToleranceMultiplier;
-      if (!hasQueueTimedOut(entry.joinedAtSeconds, timeSeconds, tolerance)) continue;
+        attendee.profile.queueToleranceSeconds *
+        settings.behavior.queueToleranceMultiplier;
+      if (!hasQueueTimedOut(entry.joinedAtSeconds, timeSeconds, tolerance))
+        continue;
       removeWaitingRequest(queue, entry.attendeeId);
       attendee.requestOpen = false;
       const waitedSeconds = timeSeconds - entry.joinedAtSeconds;
@@ -464,13 +499,12 @@ function processTimeouts(
         waitedSeconds,
       });
       finishVisit(attendee, timeSeconds, false, stepEvents);
-      const entrance = entrances.get(attendee.entranceId)!;
-      beginExit(
+      recordMissedSale(
         attendee,
-        "queue_tolerance_exceeded",
-        festival,
-        entrance.position,
-        movement,
+        festival.vendors.find((v) => v.id === queue.vendorId)!,
+        "wait_too_long",
+        timeSeconds,
+        stepEvents,
       );
     }
   }
@@ -604,15 +638,14 @@ function processArrivals(
     const canStartWithoutWaiting =
       queue.active.length + queue.waiting.length < queue.serverCount &&
       hasServiceInventory(queue);
-    if (effectiveTolerance === 0 && !canStartWithoutWaiting) {
+    if (effectiveTolerance === 0 && !canStartWithoutWaiting && queue.inventoryRemaining !== 0) {
       finishVisit(attendee, timeSeconds, false, stepEvents);
-      const entrance = entrances.get(attendee.entranceId)!;
-      beginExit(
+      recordMissedSale(
         attendee,
-        "queue_tolerance_exceeded",
-        festival,
-        entrance.position,
-        movement,
+        festival.vendors.find((v) => v.id === vendorId)!,
+        "wait_too_long",
+        timeSeconds,
+        stepEvents,
       );
       continue;
     }
@@ -622,8 +655,24 @@ function processArrivals(
     });
     if (!admitted) {
       finishVisit(attendee, timeSeconds, false, stepEvents);
-      const entrance = entrances.get(attendee.entranceId)!;
-      afterCompletedStop(attendee, festival, settings, entrance.position, movement);
+      if (queue.inventoryRemaining !== 0)
+        recordMissedSale(
+          attendee,
+          festival.vendors.find((v) => v.id === vendorId)!,
+          "queue_full",
+          timeSeconds,
+          stepEvents,
+        );
+      else {
+        const entrance = entrances.get(attendee.entranceId)!;
+        afterCompletedStop(
+          attendee,
+          festival,
+          settings,
+          entrance.position,
+          movement,
+        );
+      }
       continue;
     }
     attendee.status = "queued";
@@ -741,7 +790,9 @@ export const runSimulation: RunSimulation = (festival, settings) => {
   const attendees = new Map<Id, AttendeeState>();
   const events: SimulationEvent[] = [];
   const frames: SimulationFrame[] = [];
-  const totalSteps = Math.floor(settings.durationSeconds / settings.stepSeconds);
+  const totalSteps = Math.floor(
+    settings.durationSeconds / settings.stepSeconds,
+  );
   let profileIndex = 0;
   let nextFrameTime = 0;
 
@@ -752,7 +803,11 @@ export const runSimulation: RunSimulation = (festival, settings) => {
     if (stepIndex === 0) {
       for (const vendor of vendors) {
         if (vendor.inventory === 0) {
-          stepEvents.push({ type: "stockout", timeSeconds, vendorId: vendor.id });
+          stepEvents.push({
+            type: "stockout",
+            timeSeconds,
+            vendorId: vendor.id,
+          });
         }
       }
     }
@@ -769,7 +824,10 @@ export const runSimulation: RunSimulation = (festival, settings) => {
         entranceId: entrance.id,
         spawnTimeSeconds: timeSeconds,
         profile,
-        choice: createAttendeeChoiceStream(settings.seed, profile.choiceStreamKey),
+        choice: createAttendeeChoiceStream(
+          settings.seed,
+          profile.choiceStreamKey,
+        ),
         position: clampToBounds(entrance.position, festival),
         status: "entering",
         targetVendorId: null,
@@ -813,8 +871,6 @@ export const runSimulation: RunSimulation = (festival, settings) => {
         resolvedSettings,
         queues,
         attendees,
-        entrances,
-        streams.movement,
         stepEvents,
       );
       processDwellCompletions(
@@ -869,8 +925,6 @@ export const runSimulation: RunSimulation = (festival, settings) => {
         resolvedSettings,
         queues,
         attendees,
-        entrances,
-        streams.movement,
         stepEvents,
       );
     }
@@ -879,7 +933,8 @@ export const runSimulation: RunSimulation = (festival, settings) => {
       for (const attendee of [...attendees.values()].sort((left, right) =>
         left.id.localeCompare(right.id),
       )) {
-        if (attendee.status !== "choosing" && attendee.status !== "entering") continue;
+        if (attendee.status !== "choosing" && attendee.status !== "entering")
+          continue;
         if (
           attendee.status === "entering" &&
           attendee.spawnTimeSeconds === timeSeconds
@@ -916,7 +971,7 @@ export const runSimulation: RunSimulation = (festival, settings) => {
     festivalId: festival.id,
     settings: resolvedSettings,
     attendeeProfiles,
-    frames,
+    frames: withBusinessSnapshots(events, frames, vendors),
     events,
     destinationMetrics: [],
     destinationTransitions: [],

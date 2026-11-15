@@ -4,6 +4,7 @@ import {
   attendeeDescription,
   statusStyles,
   betweenStopsStyle,
+  angryStyle,
   vendorDisplay,
 } from "./presentation";
 
@@ -11,8 +12,11 @@ export function StatusLegend() {
   return (
     <ul className="status-legend" aria-label="Attendee status legend">
       {Object.entries({
-        ...statusStyles,
-        between_stops: betweenStopsStyle,
+        walking: betweenStopsStyle,
+        queued: statusStyles.queued,
+        leaving: statusStyles.leaving,
+        exited: statusStyles.exited,
+        angry: angryStyle,
       }).map(([key, style]) => (
         <li key={key}>
           <svg
@@ -96,7 +100,10 @@ export function FrameDetails({
                       {festival.vendors.find((v) => v.id === state.vendorId)
                         ?.name ?? state.vendorId}
                     </th>
-                    <td>{value.queue}</td>
+                    <td>
+                      {value.queue}
+                      {state.queueFull && <strong> · Queue full</strong>}
+                    </td>
                     <td>
                       {value.inventory}
                       {state.inventoryRemaining === 0 && (

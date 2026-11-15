@@ -52,7 +52,15 @@ export interface AttendeeProfile {
   initialBudget: number;
 }
 
+export interface QueueFrustration {
+  vendorId: Id;
+  reason: "wait_too_long" | "queue_full";
+  timeSeconds: number;
+  missedSaleValue: number;
+}
 export interface AttendeeFrameState {
+  /** Engine-supplied presentation marker, visible for 15 simulated seconds. */
+  queueFrustration?: QueueFrustration;
   id: Id;
   position: Point;
   status: AttendeeStatus;
@@ -63,6 +71,11 @@ export interface AttendeeFrameState {
   remainingBudget?: number;
 }
 export interface VendorFrameState {
+  /** Event-derived values through this recorded timestamp; absent on legacy frames. */
+  cumulativeRevenue?: number;
+  cumulativeMissedSales?: number;
+  cumulativeMissedSaleValue?: number;
+  queueFull?: boolean;
   vendorId: Id;
   queueLength: number;
   inventoryRemaining: number | null;
@@ -84,6 +97,7 @@ export type ExitReason =
   | "run_ended";
 
 export type SimulationEvent =
+  | ({ type: "missed_sale"; attendeeId: Id } & QueueFrustration)
   | { type: "spawn"; timeSeconds: number; attendeeId: Id; entranceId: Id }
   | { type: "queue_join"; timeSeconds: number; attendeeId: Id; vendorId: Id }
   | {
@@ -133,6 +147,8 @@ export type SimulationEvent =
     };
 
 export interface VendorMetrics {
+  /** Modeled missed-sale opportunities, not actual revenue or festival losses. */
+  missedSales?: { count: number; value: number };
   vendorId: Id;
   visits: number;
   queueJoins: number;

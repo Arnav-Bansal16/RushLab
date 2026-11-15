@@ -9,23 +9,36 @@ export const statusStyles: Record<
   AttendeeStatus,
   { label: string; color: string; opacity: number }
 > = {
-  entering: { label: "Entering", color: "#559caf", opacity: 1 },
-  choosing: { label: "Choosing", color: "#6f72b8", opacity: 1 },
+  entering: { label: "Entering", color: "#286baf", opacity: 1 },
+  choosing: { label: "Choosing", color: "#286baf", opacity: 1 },
   walking: { label: "Walking", color: "#286baf", opacity: 1 },
-  roaming: { label: "Roaming", color: "#4b7e9a", opacity: 1 },
+  roaming: { label: "Roaming", color: "#286baf", opacity: 1 },
   queued: { label: "Queued", color: "#a56b09", opacity: 1 },
-  purchasing: { label: "In service", color: "#21815b", opacity: 1 },
-  dwelling: { label: "Dwelling", color: "#367963", opacity: 1 },
+  purchasing: { label: "In service", color: "#7b8790", opacity: 1 },
+  dwelling: { label: "Dwelling", color: "#7b8790", opacity: 1 },
   leaving: { label: "Leaving festival", color: "#c0268c", opacity: 1 },
   exited: { label: "Exited", color: "#67736d", opacity: 0.25 },
 };
 export const betweenStopsStyle = {
-  label: "Moving to next stop",
-  color: "#d26917",
+  label: "Walking",
+  color: "#286baf",
+  opacity: 1,
+};
+export const angryStyle = {
+  label: "Frustrated · left queue",
+  color: "#e12828",
   opacity: 1,
 };
 export function attendeeStyle(attendee: AttendeeFrameState) {
-  return attendee.status === "walking" && (attendee.completedStops ?? 0) > 0
+  if (
+    attendee.queueFrustration &&
+    attendee.status !== "exited" &&
+    attendee.status !== "leaving"
+  )
+    return angryStyle;
+  return ["entering", "choosing", "walking", "roaming"].includes(
+    attendee.status,
+  )
     ? betweenStopsStyle
     : statusStyles[attendee.status];
 }
@@ -51,7 +64,7 @@ export function attendeeDescription(
       : (festival.vendors.find(
           (vendor) => vendor.id === attendee.targetVendorId,
         )?.name ?? attendee.targetVendorId);
-  return `${attendee.id} · ${attendeeStyle(attendee).label} · ${target}`;
+  return `${attendee.id} · ${attendee.queueFrustration && attendee.status !== "leaving" && attendee.status !== "exited" ? angryStyle.label : statusStyles[attendee.status].label} · ${target}${attendee.queueFrustration ? ` · Left ${festival.vendors.find((v) => v.id === attendee.queueFrustration!.vendorId)?.name ?? attendee.queueFrustration.vendorId}: ${attendee.queueFrustration.reason === "queue_full" ? "queue full" : "wait too long"} · modeled missed sale ${attendee.queueFrustration.missedSaleValue} currency units` : ""}`;
 }
 export function vendorDisplay(state: VendorFrameState) {
   return {
@@ -63,3 +76,9 @@ export function vendorDisplay(state: VendorFrameState) {
     sales: state.cumulativeSales,
   };
 }
+
+export const formatCurrencyUnits = (value: number) =>
+  value.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });

@@ -399,8 +399,8 @@ describe("runSimulation SIM-03 behavior", () => {
     expect(eventsOfType(zero, "queue_join")).toHaveLength(0);
     expect(eventsOfType(zero, "queue_abandon")).toHaveLength(0);
     expect(
-      eventsOfType(zero, "exit").some(
-        ({ reason }) => reason === "queue_tolerance_exceeded",
+      eventsOfType(zero, "missed_sale").some(
+        ({ reason }) => reason === "wait_too_long",
       ),
     ).toBe(true);
 

@@ -1,7 +1,11 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import type { AttendeeStatus, SimulationFrame } from "../../domain";
+import type {
+  AttendeeStatus,
+  SimulationFrame,
+  SimulationResult,
+} from "../../domain";
 import { demoFestival } from "../../fixtures/demoFestival";
 import { demoSimulationResult } from "../../fixtures/demoSimulationResult";
 import { fitViewport } from "../editor/geometry";
@@ -25,7 +29,7 @@ vi.mock("react-konva", () => ({
 import PlaybackView, { PlaybackControls, RunMessages } from "./PlaybackView";
 import { AttendeeMarks } from "./PlaybackCanvas";
 import { FrameDetails, StatusLegend } from "./FrameDetails";
-import { statusStyles } from "./presentation";
+import { statusStyles, attendeeStyle } from "./presentation";
 import PlaybackWorkspace from "./PlaybackWorkspace";
 import { createBlankLayout } from "../editor/layout";
 
@@ -237,15 +241,156 @@ it("updates vendor values and their timestamp from consecutive playback frames",
   expect(first.vendors[0]).toEqual(base);
 });
 
-it("shows final engine revenue unchanged by the initial playback frame", () => {
-  const result = structuredClone(demoSimulationResult);
+it("shows recorded-moment revenue without leaking the final engine totals", () => {
+  const result: SimulationResult = structuredClone(demoSimulationResult);
   result.vendorMetrics[0].revenue = 1234.56;
   result.frames[0].vendors[0].cumulativeSales = 0;
+  Object.assign(result.frames[0].vendors[0], {
+    cumulativeRevenue: 0,
+    cumulativeMissedSales: 0,
+    cumulativeMissedSaleValue: 0,
+  });
   const html = renderToStaticMarkup(
     createElement(PlaybackView, { festival: demoFestival, result }),
   );
-  expect(html).toContain("1,234.56");
-  expect(html).toContain("Final stall revenue");
+  expect(html).not.toContain("1,234.56");
+  expect(html).toContain("Stall revenue at");
+  expect(html).toContain("0.00");
   expect(html).toContain("not profit or a forecast");
   expect(result.frames[0].vendors[0].cumulativeSales).toBe(0);
+});
+
+it("shows full queues, supplied missed-sale values and the reason for each frustrated guest", () => {
+  const result: SimulationResult = structuredClone(demoSimulationResult);
+  result.frames[0].timeSeconds = 5;
+  Object.assign(result.frames[0].vendors[0], {
+    cumulativeRevenue: 0,
+    cumulativeMissedSales: 1,
+    cumulativeMissedSaleValue: 17,
+  });
+  const vendor = result.vendorMetrics[0];
+  vendor.missedSales = { count: 1, value: 17 };
+  result.events.push({
+    type: "missed_sale",
+    attendeeId: "angry-guest",
+    vendorId: vendor.vendorId,
+    timeSeconds: 5,
+    reason: "wait_too_long",
+    missedSaleValue: 17,
+  });
+  const html = renderToStaticMarkup(
+    createElement(PlaybackView, { festival: demoFestival, result }),
+  );
+  expect(html).toContain("17.00");
+  expect(html).toContain("angry-guest");
+  expect(html).toContain("Wait too long");
+  const frustration = {
+    vendorId: vendor.vendorId,
+    timeSeconds: 5,
+    reason: "wait_too_long" as const,
+    missedSaleValue: 17,
+  };
+  const frame: SimulationFrame = {
+    timeSeconds: 6,
+    attendees: [
+      {
+        id: "angry-guest",
+        status: "walking",
+        position: { x: 10, y: 10 },
+        targetVendorId: null,
+        target: null,
+        queueFrustration: frustration,
+      },
+    ],
+    vendors: [
+      {
+        vendorId: vendor.vendorId,
+        queueLength: 8,
+        queueFull: true,
+        inventoryRemaining: null,
+        cumulativeSales: 0,
+      },
+    ],
+  };
+  const details = renderToStaticMarkup(
+    createElement(FrameDetails, {
+      festival: demoFestival,
+      frame,
+      inspectedId: "angry-guest",
+      onInspect: () => {},
+    }),
+  );
+  expect(details).toContain("Queue full");
+  expect(details).toContain("Frustrated");
+  expect(details).toContain("wait too long");
+  const marks = renderToStaticMarkup(
+    createElement(
+      "svg",
+      null,
+      createElement(AttendeeMarks, {
+        frame,
+        transform: fitViewport(demoFestival.boundsMeters, {
+          width: 800,
+          height: 500,
+        }),
+      }),
+    ),
+  );
+  expect(marks).toContain("#e12828");
+});
+
+it("uses one walking category, preserves queued color and shows the current red-guest count", () => {
+  const legend = renderToStaticMarkup(createElement(StatusLegend));
+  for (const label of [
+    "Entering",
+    "Choosing",
+    "Roaming",
+    "Moving to next stop",
+    "In service",
+    "Dwelling",
+  ])
+    expect(legend).not.toContain(label);
+  expect(legend).toContain("Walking");
+  expect(legend).toContain("Queued");
+  expect(legend).toContain("Frustrated");
+  for (const status of [
+    "entering",
+    "choosing",
+    "walking",
+    "roaming",
+  ] as const) {
+    const person = {
+      id: "guest",
+      status,
+      position: { x: 1, y: 1 },
+      targetVendorId: null,
+      completedStops: 2,
+    };
+    expect(attendeeStyle(person)).toEqual({
+      label: "Walking",
+      color: "#286baf",
+      opacity: 1,
+    });
+  }
+  expect(
+    attendeeStyle({
+      id: "waiting",
+      status: "queued",
+      position: { x: 1, y: 1 },
+      targetVendorId: null,
+    }).color,
+  ).toBe("#a56b09");
+  const result: SimulationResult = structuredClone(demoSimulationResult);
+  result.frames[0].attendees[0].queueFrustration = {
+    vendorId: demoFestival.vendors[0].id,
+    reason: "wait_too_long",
+    timeSeconds: 0,
+    missedSaleValue: 12,
+  };
+  const html = renderToStaticMarkup(
+    createElement(PlaybackView, { festival: demoFestival, result }),
+  );
+  expect(html).toContain("Frustrated now</span><strong>1</strong>");
+  expect(html).toContain("numeric revenue-value");
+  expect(html).toContain("Missed-sale value");
 });
