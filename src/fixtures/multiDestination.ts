@@ -1,5 +1,6 @@
 import {
   DEFAULT_BEHAVIOR_SETTINGS,
+  CURRENT_SIMULATION_MODEL_SEMANTICS,
   type AttendeeProfile,
   type Festival,
   type SimulationResult,
@@ -219,6 +220,8 @@ const attendeeProfiles = [
 export const multiDestinationSimulationResult = {
   schemaVersion: 1,
   festivalId: multiDestinationFestival.id,
+  festival: multiDestinationFestival,
+  modelSemantics: { ...CURRENT_SIMULATION_MODEL_SEMANTICS },
   settings: {
     seed: 20261114,
     attendeeCount: attendeeProfiles.length,
@@ -632,6 +635,10 @@ export const multiDestinationSimulationResult = {
 export const multiDestinationAlternativeResult = {
   ...multiDestinationSimulationResult,
   festivalId: "festival-multi-destination-alternative",
+  festival: {
+    ...multiDestinationFestival,
+    id: "festival-multi-destination-alternative",
+  },
   attendeeProfiles: multiDestinationSimulationResult.attendeeProfiles.map(
     (profile) => ({
       ...profile,

@@ -89,8 +89,27 @@ weights, price elasticity, queue-tolerance multiplier, overall/per-type/revisit
 limits, exit settings, dwell/roam ranges, per-location dwell overrides, and
 other non-layout demand assumptions.
 A mismatch must either reject comparison or populate
-`ScenarioComparison.warnings`; it must never silently present a fair-looking
-delta.
+`ScenarioComparison.compatibility.warnings`; it must never silently present a
+fair-looking delta.
+
+INT-01 snapshots the exact `Festival` input and explicit `modelSemantics` on
+every `SimulationResult`. The semantics marker names bounded itinerary,
+queue-departure reselection, full-queue reselection, frustration-marker and
+modeled missed-sale-opportunity policies. A missing/unsupported snapshot,
+schema or semantics marker is a hard incompatibility. `frameIntervalSeconds`
+is presentation-only and is intentionally excluded from fair-comparison checks.
+
+`assessScenarioCompatibility` is the reusable guard for manual and generated
+alternatives. Hard incompatibilities return `ScenarioComparison` with all four
+outcome groups set to `null`; consumers must not score or render those runs as
+a fair comparison. One-sided entities and missing legacy optional missed-sale
+metrics remain compatible with structured warnings and unavailable raw values.
+Every available metric retains baseline, alternative, absolute
+`alternative - baseline`, and percentage values. A zero baseline percentage is
+`not_applicable`; a missing optional value is `unavailable`, never zero.
+Duplicate canonical result identities are a hard incompatibility. ANA-03
+transition arrays are sparse, so a transition row absent on one side has a raw
+count of zero while retaining explicit one-sided presence and a warning.
 
 Generated-candidate evaluation applies this guard independently for every
 baseline/candidate pair. P0 evaluates no more than four candidates with a
@@ -98,7 +117,7 @@ documented three-seed suite derived deterministically from the requested
 baseline seed. Each candidate is paired with the corresponding baseline for
 each seed, per-seed comparisons are retained, and aggregation makes no
 confidence-interval claim. Percentage deltas with a zero baseline denominator
-are explicitly unavailable.
+are explicitly not applicable.
 
 ## Event-to-metric ownership
 

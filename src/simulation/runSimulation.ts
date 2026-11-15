@@ -11,6 +11,7 @@ import type {
   SimulationSettings,
   Vendor,
 } from "../domain";
+import { CURRENT_SIMULATION_MODEL_SEMANTICS } from "../domain";
 import { resolveBehaviorSettings } from "../domain";
 import { deriveDestinationMetrics } from "../analytics/destinations";
 import { deriveSimulationMetrics, withBusinessSnapshots } from "../analytics/metrics";
@@ -970,7 +971,9 @@ export const runSimulation: RunSimulation = (festival, settings) => {
   return {
     schemaVersion: 1,
     festivalId: festival.id,
-    settings: resolvedSettings,
+    festival: structuredClone(festival),
+    modelSemantics: { ...CURRENT_SIMULATION_MODEL_SEMANTICS },
+    settings: structuredClone(resolvedSettings),
     attendeeProfiles,
     frames: withBusinessSnapshots(events, frames, vendors),
     events,

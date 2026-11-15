@@ -1,4 +1,8 @@
-import type { SimulationResult } from "../domain";
+import {
+  CURRENT_SIMULATION_MODEL_SEMANTICS,
+  type SimulationResult,
+} from "../domain";
+import { demoFestival } from "./demoFestival";
 
 /**
  * A small, internally consistent result for playback and dashboard integration.
@@ -7,6 +11,8 @@ import type { SimulationResult } from "../domain";
 export const demoSimulationResult = {
   schemaVersion: 1,
   festivalId: "festival-demo",
+  festival: demoFestival,
+  modelSemantics: { ...CURRENT_SIMULATION_MODEL_SEMANTICS },
   settings: {
     seed: 20261113,
     attendeeCount: 1,
