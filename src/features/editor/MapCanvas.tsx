@@ -67,13 +67,16 @@ export default function MapCanvas({
     observer.observe(host.current);
     return () => observer.disconnect();
   }, []);
-  const transform = fitViewport(festival.boundsMeters, viewport);
+  const transform = fitViewport(festival.boundsMeters, viewport, 16);
   const s = transform.scale;
   const origin = transform.offset;
   const point = (p: Point) => metersToPixels(p, transform);
   return (
     <div
       className="map-canvas"
+      style={{
+        aspectRatio: `${festival.boundsMeters.width} / ${festival.boundsMeters.height}`,
+      }}
       ref={host}
       role="img"
       aria-label="Event layout map. Select and move components using the inspector, or drag them on the map."

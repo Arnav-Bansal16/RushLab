@@ -495,3 +495,34 @@ button:disabled {
   margin-top: 8px;
   width: auto;
 }
+
+/* Keep more of the venue and run workspace within the first screen. */
+@media (min-width: 1100px) {
+  .workspace { max-width: 1760px; padding-left: 28px; padding-right: 28px; }
+  .workspace .topbar { height: 72px; }
+  .workspace .page-heading { padding-top: 22px; padding-bottom: 20px; }
+  .workspace .venue-toolbar { padding: 14px; margin-bottom: 14px; }
+}
+
+/* Consolidate tools into one rail and let the venue use the freed column. */
+@media (min-width: 800px) {
+  .venue-builder-layout {
+    grid-template-columns: 280px minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    gap: 12px;
+  }
+  .venue-builder-layout > .palette { grid-column: 1; grid-row: 1; }
+  .venue-builder-layout > .properties { grid-column: 1; grid-row: 2; }
+  .venue-builder-layout > .map-panel { grid-column: 2; grid-row: 1 / span 2; }
+  .venue-builder-layout .inspector { padding: 15px; }
+}
+.venue-map-wrap .map-canvas {
+  height: auto;
+  min-height: 260px;
+  max-height: 640px;
+}
+.map-panel .panel-heading { padding: 12px 16px; }
+.map-panel .map-footer { padding: 9px 14px; gap: 12px; }
+.map-panel .simulation-handoff { padding: 12px 14px; }
+.simulation-handoff > summary { cursor: pointer; font-size: 12px; font-weight: 600; color: #526a4d; }
+.workspace .page-heading p:last-child { margin-bottom: 0; }

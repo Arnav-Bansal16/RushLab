@@ -109,3 +109,27 @@ Demo sign-in now shows optional username/password fields. They have no names,
 are never read/sent/stored, and submitting empty or filled fields navigates to
 /workspace without auth. Browser checked both cases and absence of the removed
 demo text. Full verify passed 297 tests, lint, types and build; diff check passed.
+
+### Fresh demo scenarios and compact layout
+
+Each Try demo action now obtains a fresh signed 32-bit seed using browser
+crypto.getRandomValues in the UI boundary (`features/playback/demoSeed.ts`).
+An immediate duplicate draw advances by one with signed wrapping. The shared
+festivalDemoSettings object is cloned, never mutated. Manual run settings,
+engine seeded streams, saved playback/restart and paired comparison assumptions
+are unchanged. Fresh seeds vary modeled profiles/events, but do not promise
+that every aggregate metric must differ by chance on every run. Illustrative
+20% targets remain visibly illustrative, not randomized fabricated outcomes.
+
+At >=1200px, playback and final evidence share a two-column responsive grid.
+The playback canvas fits its column with an aspect ratio rather than leaving
+large horizontal margins; outer editor spacing is tighter on desktop. Smaller
+screens retain the stacked flow and accessible table scrolling.
+
+New tests verify fresh/deduplicated/wrapped seeds, settings isolation, differing
+real profiles/events under different seeds and exact replay with the same seed.
+Full verify passed 299 tests / 38 files, lint, types and production build.
+Browser: three real 300-guest demos used different seeds; successive final
+summaries changed from 60 purchases / 329 revenue to 65 / 363. At 1440px,
+playback/results measured about 751/577px; at 390px both stacked at 320px and
+document width remained 390. No engine randomness or contract changes.

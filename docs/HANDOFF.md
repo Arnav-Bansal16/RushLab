@@ -1,6 +1,46 @@
 # Current implementation and expanded P0 handoff
 
-## Current checkpoint — 2026-11-14
+## Current checkpoint — 2026-11-15
+
+PR [#17](https://github.com/Arnav-Bansal16/RushLab/pull/17) is merged into
+main (`2fc7201`). It includes the home page and Waitlistr links, demo sign-in,
+saved-run reporting, optional cloud-template infrastructure and demo retention.
+The follow-up branch `codex/demo-randomization-and-compact-layout` contains:
+
+- A fresh browser-generated seed on each **Try the 8-vendor demo** action.
+  Immediate duplicate draws are avoided. The engine remains deterministic;
+  replaying a saved run does not rerun it, manual settings remain editable, and
+  baseline/alternative evaluations keep compatible seeds and assumptions.
+  Different seeds can occasionally produce equal aggregate totals.
+- A compact editor with creation and inspection in one desktop tools rail,
+  a larger map fitted to the venue aspect ratio, and collapsed simulation JSON
+  controls. The unconfigured cloud toolbar is hidden. Draft restoration and
+  configured cloud controls remain available; world geometry is unchanged.
+- Side-by-side playback and final results on wide screens, with stacked panels
+  on smaller screens and tighter header/panel spacing.
+
+The main demo flow is `/` → `/login` → `/workspace` → **Try the 8-vendor demo**.
+Username and password are optional demo inputs and are never read or stored.
+The demo uses 300 guests, normal patience, three waiting spaces per vendor and
+retention until closing. Its labeled illustrative before/after targets show
+approximately 20% improvements; these are not calculated alternative outcomes
+and never change canonical metrics or candidate ranking.
+
+Supabase is not configured. Real authentication, cross-device templates and
+two-account RLS isolation require setup and live verification; see
+[organizer account setup](./ORGANIZER-ACCOUNTS-SETUP.md). Performance/release
+acceptance and deployment remain separate. Merge presence does not establish
+that both developers reviewed the shared retention contracts.
+
+Verification: `npm run verify` passed lint, types, 299 tests across 38 files and
+production build. New tests cover fresh/deduplicated/wrapped seeds, immutable
+settings, differing real profiles/events and deterministic repeat runs.
+Browser checks covered repeated demos, desktop playback/results, responsive
+stacking, editor example loading and component selection. Detailed observations
+and limitations are in [demo handoff](./DEMO-RETENTION-HANDOFF.md) and
+[home/editor handoff](./HOME-PAGE-HANDOFF.md).
+
+## Previous checkpoint — 2026-11-14
 
 Start with [UI-04 consolidated handoff](./UI-04-CONSOLIDATED-HANDOFF.md) and
 [the updated task plan](./TASKS.md). Fetched main `785ed94` includes UI-04/demo
