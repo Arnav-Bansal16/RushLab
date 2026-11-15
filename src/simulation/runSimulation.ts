@@ -14,7 +14,10 @@ import type {
 import { CURRENT_SIMULATION_MODEL_SEMANTICS } from "../domain";
 import { resolveBehaviorSettings } from "../domain";
 import { deriveDestinationMetrics } from "../analytics/destinations";
-import { deriveSimulationMetrics, withBusinessSnapshots } from "../analytics/metrics";
+import {
+  deriveSimulationMetrics,
+  withBusinessSnapshots,
+} from "../analytics/metrics";
 import {
   assignStableIntent,
   createAttendeeChoiceStream,
@@ -141,7 +144,18 @@ function beginExit(
   festival: Festival,
   entrancePosition: Point,
   movement: RandomStream,
+  retainUntilEnd = false,
 ): void {
+  if (retainUntilEnd) {
+    attendee.status = "dwelling";
+    attendee.stayingUntilEnd = true;
+    attendee.targetVendorId = null;
+    attendee.target = null;
+    attendee.route = [];
+    attendee.routeIndex = 0;
+    attendee.roamingWaypointCount = 0;
+    return;
+  }
   attendee.status = "leaving";
   attendee.targetVendorId = null;
   attendee.target = null;
@@ -168,6 +182,7 @@ function exitAttendee(
     attendee.position = { ...reachedEntrancePosition };
   }
   attendee.status = "exited";
+  attendee.stayingUntilEnd = undefined;
   attendee.targetVendorId = null;
   attendee.target = null;
   attendee.requestOpen = false;
@@ -188,8 +203,17 @@ function afterCompletedStop(
   entrancePosition: Point,
   movement: RandomStream,
 ): void {
-  if ((attendee.completedStops ?? 0) >= settings.behavior.maximumItineraryStops) {
-    beginExit(attendee, "itinerary_limit", festival, entrancePosition, movement);
+  if (
+    (attendee.completedStops ?? 0) >= settings.behavior.maximumItineraryStops
+  ) {
+    beginExit(
+      attendee,
+      "itinerary_limit",
+      festival,
+      entrancePosition,
+      movement,
+      settings.behavior.retainAttendeesUntilEnd,
+    );
     return;
   }
   const exitProbability =
@@ -202,6 +226,7 @@ function afterCompletedStop(
       festival,
       entrancePosition,
       movement,
+      settings.behavior.retainAttendeesUntilEnd,
     );
     return;
   }
@@ -299,6 +324,7 @@ function planDestination(
       festival,
       entrancePosition,
       movement,
+      settings.behavior.retainAttendeesUntilEnd,
     );
     return;
   }
@@ -336,6 +362,7 @@ function snapshotFrame(
   attendees: Map<Id, AttendeeState>,
   vendors: Vendor[],
   queues: Map<Id, VendorQueueState>,
+  settings: ResolvedSettings,
 ): SimulationFrame {
   return {
     timeSeconds,
@@ -351,16 +378,20 @@ function snapshotFrame(
           completedStops,
           remainingBudget,
           queueFrustration,
+          stayingUntilEnd,
         }) => ({
           id,
           position: { ...position },
           status,
+          ...(stayingUntilEnd ? { stayingUntilEnd: true } : {}),
           targetVendorId,
           target: target ? { ...target } : null,
           completedStops: completedStops ?? 0,
           remainingBudget,
           ...(queueFrustration &&
-          timeSeconds - queueFrustration.timeSeconds < 15
+          (settings.behavior.retainAttendeesUntilEnd
+            ? timeSeconds < settings.durationSeconds
+            : timeSeconds - queueFrustration.timeSeconds < 15)
             ? { queueFrustration: { ...queueFrustration } }
             : {}),
         }),
@@ -416,7 +447,13 @@ function processServiceCompletions(
       });
       finishVisit(attendee, timeSeconds, false, stepEvents);
       const entrance = entrances.get(attendee.entranceId)!;
-      afterCompletedStop(attendee, festival, settings, entrance.position, movement);
+      afterCompletedStop(
+        attendee,
+        festival,
+        settings,
+        entrance.position,
+        movement,
+      );
       if (stockedOut) {
         stepEvents.push({ type: "stockout", timeSeconds, vendorId: vendor.id });
       }
@@ -430,7 +467,13 @@ function processServiceCompletions(
           attendee.requestOpen = false;
           finishVisit(attendee, timeSeconds, false, stepEvents);
           const entrance = entrances.get(attendee.entranceId)!;
-          afterCompletedStop(attendee, festival, settings, entrance.position, movement);
+          afterCompletedStop(
+            attendee,
+            festival,
+            settings,
+            entrance.position,
+            movement,
+          );
         }
         stepEvents.push({
           type: "queue_abandon",
@@ -532,7 +575,13 @@ function processDwellCompletions(
     const completedAtSeconds = attendee.activeVisit.dwellCompletesAtSeconds;
     finishVisit(attendee, completedAtSeconds, false, stepEvents);
     const entrance = entrances.get(attendee.entranceId)!;
-    afterCompletedStop(attendee, festival, settings, entrance.position, movement);
+    afterCompletedStop(
+      attendee,
+      festival,
+      settings,
+      entrance.position,
+      movement,
+    );
   }
 }
 
@@ -962,7 +1011,15 @@ export const runSimulation: RunSimulation = (festival, settings) => {
 
     appendOrderedEvents(events, stepEvents);
     if (timeSeconds + Number.EPSILON >= nextFrameTime) {
-      frames.push(snapshotFrame(timeSeconds, attendees, vendors, queues));
+      frames.push(
+        snapshotFrame(
+          timeSeconds,
+          attendees,
+          vendors,
+          queues,
+          resolvedSettings,
+        ),
+      );
       nextFrameTime += settings.frameIntervalSeconds;
     }
   }

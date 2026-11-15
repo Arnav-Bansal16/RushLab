@@ -59,7 +59,9 @@ export interface QueueFrustration {
   missedSaleValue: number;
 }
 export interface AttendeeFrameState {
-  /** Engine-supplied presentation marker, visible for 15 simulated seconds. */
+  /** Engine-supplied idle-on-site state, without an invented destination visit. */
+  stayingUntilEnd?: boolean;
+  /** Visible for 15 seconds normally; opt-in retention keeps it until closing. */
   queueFrustration?: QueueFrustration;
   id: Id;
   position: Point;

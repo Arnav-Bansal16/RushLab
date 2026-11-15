@@ -31,11 +31,12 @@ describe("SIM-01 frontend handoff", () => {
       Parameters<RunSimulation>[1]
     >();
     expect(prepared.festival).toEqual(demoFestival);
-    expect(prepared.settings).toEqual(settings);
+    const resolvedSettings = { ...settings, behavior: { ...settings.behavior, retainAttendeesUntilEnd: false } };
+    expect(prepared.settings).toEqual(resolvedSettings);
     // Contract double only: the real SIM-01 engine does not exist in this checkout.
     const consume: RunSimulation = (festival, configuration) => {
       expect(festival).toEqual(demoFestival);
-      expect(configuration).toEqual(settings);
+      expect(configuration).toEqual(resolvedSettings);
       return structuredClone(demoResult);
     };
     expect(consume(prepared.festival, prepared.settings)).toEqual(demoResult);

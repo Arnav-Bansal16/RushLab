@@ -180,3 +180,19 @@ full current boundary, scope extension and evidence.
   schemaVersion 1 alone cannot equate older timeout-exits runs with current runs.
 - Fresh performance and remaining manual QA are pending, not proven by merge
   presence or historical test counts. Continue via UI-04-QA/PERF-01 in TASKS.
+
+### Demonstration retention extension — pending joint review before merge
+
+Optional `behavior.retainAttendeesUntilEnd` defaults to false. The festival demo
+sets it true. It retains attendees on site until the global run end after their
+bounded activity finishes and retains actual queue-departure markers until
+closing. Frames expose optional `stayingUntilEnd` for idle-on-site guests;
+this does not create a destination visit or queue. UI reads the engine marker
+and labels this modeled demonstration assumption. All retained guests emit
+run_ended exits at closing, with queue/service cleanup and zero red count then.
+
+The existing compatibility guard compares the complete saved behavior object;
+true-vs-false retention settings are incompatible. The setting is explicit
+alongside existing model semantics, not a hidden change to all schema-v1 runs.
+Missing legacy optional business metrics stay unavailable; no values are
+fabricated to increase the visible frustration count.

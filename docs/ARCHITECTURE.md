@@ -362,3 +362,36 @@ Shared business accumulation is reused for final and timestamped values. The
 consolidated handoff and TASKS distinguish merged implementation from pending
 manual/performance acceptance and downstream feature work. New shared changes
 still require joint review; merge history alone is not attributed approval.
+
+## Opt-in demonstration retention (human review before merge)
+
+User-authorized extension: `BehaviorSettings.retainAttendeesUntilEnd?: boolean`
+resolves to false by default. When true, normal itinerary, affordability,
+individual visit-time and destination limits still bound actual visits. A
+would-be departure instead becomes idle-on-site dwelling without an active
+visit or destination; the engine supplies `stayingUntilEnd` on its frame.
+Nobody exits before the global run end. End-of-run cleanup releases queues and
+servers, truncates active visits and emits exactly one run_ended exit per guest.
+
+In this illustrative mode, an actual recorded queue departure's frustration
+marker persists until closing, rather than the normal 15-second interval.
+It represents a modeled queue-frustration experience during the event, not a
+measurement of continuous emotion. Markers clear in the closing frame. Prices,
+purchases, missed-sale opportunity events and all metric reducers are unchanged.
+The demo opts in; ordinary runs do not. Fair comparison requires matching
+retention settings, and paired capacity scenarios reuse the same setting.
+The shared-field change is authorized for implementation with joint developer
+review required before merge, per the user’s explicit approval in this task.
+
+## User-authorized organizer accounts extension
+
+The original guest-only P0 remains usable. The user subsequently authorized
+real email/password accounts and private cross-device layout templates.
+Optional Supabase browser auth and RLS-protected JSONB persistence now live in
+`features/account` and `features/templates`, with narrow editor integration.
+No auth/database dependency enters domain contracts, engine or analytics.
+Only public project configuration reaches the client; no service-role key is
+used. Node.js 22+ is required by the official Supabase client. Setup, access
+policies, schema versioning, draft handoff and remaining real-project checks
+are documented in ORGANIZER-ACCOUNTS-SETUP.md. This supersedes the original
+no-auth decision only for this explicit extension; cloud setup is still pending.

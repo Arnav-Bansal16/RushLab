@@ -64,6 +64,8 @@ export function attendeeDescription(
       : (festival.vendors.find(
           (vendor) => vendor.id === attendee.targetVendorId,
         )?.name ?? attendee.targetVendorId);
+  if (attendee.stayingUntilEnd)
+    return `${attendee.id} · Staying until closing${attendee.queueFrustration ? " · Frustrated by an earlier queue departure" : ""}`;
   return `${attendee.id} · ${attendee.queueFrustration && attendee.status !== "leaving" && attendee.status !== "exited" ? angryStyle.label : statusStyles[attendee.status].label} · ${target}${attendee.queueFrustration ? ` · Left ${festival.vendors.find((v) => v.id === attendee.queueFrustration!.vendorId)?.name ?? attendee.queueFrustration.vendorId}: ${attendee.queueFrustration.reason === "queue_full" ? "queue full" : "wait too long"} · modeled missed sale ${attendee.queueFrustration.missedSaleValue} currency units` : ""}`;
 }
 export function vendorDisplay(state: VendorFrameState) {

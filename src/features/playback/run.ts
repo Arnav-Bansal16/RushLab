@@ -1,3 +1,4 @@
+import { totalMissedSaleValue } from "../../analytics/metrics/totalMissedSaleValue";
 import type {
   Festival,
   RunSimulation,
@@ -9,6 +10,8 @@ import type { LayoutDocument } from "../editor/layout";
 import { prepareSimulationInput } from "../editor/simulationInput";
 
 export interface ActiveRun {
+  /** Analytics-owned aggregation captured once for this successful run. */
+  modeledMissedSaleValue?: number;
   festivalSnapshot: Festival;
   settingsSnapshot: SimulationSettings;
   result: SimulationResult;
@@ -35,6 +38,7 @@ export function executeRun(
       run: {
         festivalSnapshot,
         settingsSnapshot,
+        modeledMissedSaleValue: totalMissedSaleValue(result.vendorMetrics),
         result: structuredClone(result),
         warnings: [...input.warnings],
       },
