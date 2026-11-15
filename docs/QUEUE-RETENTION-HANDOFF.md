@@ -1,5 +1,12 @@
 # Queue retention, frustration and modeled missed sales
 
+> Current status (2026-11-14): this work is merged through UI-04 PR #10 and
+> queue-retention PR #11 on main `785ed94`. See
+> [the consolidated handoff](./UI-04-CONSOLIDATED-HANDOFF.md) and TASKS for the
+> current scope and next steps. Draft/blocked/no-PR claims below are historical
+> evidence, not current status. New shared changes still require joint review.
+
+
 Draft implementation on `codex/queue-abandonment-retention`, based on UI-04
 `656e690`. User explicitly requested continued visits after queue abandonment,
 frustration colors, full-queue indication and a value per missed sale. They

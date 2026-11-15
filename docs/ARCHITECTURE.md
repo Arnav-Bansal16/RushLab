@@ -289,9 +289,9 @@ new `SimulationResult` snapshots the fully resolved settings.
 
 P1 LLM explanations receive a compact structured comparison and recommendations; they never calculate metrics or control agents. P2 Supabase stores versioned festival/result documents and requires RLS. Both require a separate architecture approval.
 
-## Draft queue-retention extension (joint review required)
+## Merged queue-retention extension
 
-On `codex/queue-abandonment-retention`, exceeding queue patience or rejection
+Merged in PR #11 on main `785ed94` (2026-11-14), exceeding queue patience or rejection
 from a full waiting queue ends that stall visit and returns the attendee to
 bounded destination selection, rather than directly exiting the festival.
 Normal time, budget, eligibility and itinerary limits still apply.
@@ -303,3 +303,12 @@ These opportunities do not reduce purchase revenue, attendee budget or stock,
 and are not losses of actual festival revenue. Stockout removals and ordinary
 festival exits are not assigned invented missed purchases. Shared contract
 changes require both developers' review under AGENTS.md before merge.
+
+Playback business figures are analytics-owned reductions of canonical events
+through each recorded frame timestamp, not calculations from frames. Optional
+cumulativeRevenue/cumulativeMissedSales/cumulativeMissedSaleValue fields drive
+selected-moment display; final result metrics remain available independently.
+Shared business accumulation is reused for final and timestamped values. The
+consolidated handoff and TASKS distinguish merged implementation from pending
+manual/performance acceptance and downstream feature work. New shared changes
+still require joint review; merge history alone is not attributed approval.

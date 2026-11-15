@@ -2,6 +2,29 @@
 
 Estimates are focused implementation time with AI assistance, not calendar guarantees. A = product/UI, B = simulation/analytics, J = joint.
 
+## Current checkpoint — 2026-11-14
+
+Fetched main `785ed94` includes UI-04/demo PR #10 (`b044aab`) and queue-retention
+PR #11. SIM-03 and its handoff were already merged (#8/#9). See
+[UI-04 consolidated handoff](./UI-04-CONSOLIDATED-HANDOFF.md) for delivered
+behavior, scope deviations, exact contracts, evidence and continuation guidance.
+Merge presence is verified; review-list APIs do not independently establish
+both-developer approval. Do not treat old draft-status handoffs as current gates.
+
+| Work | Current state | Remaining work |
+| --- | --- | --- |
+| SIM-02 / UI-02 / ANA-01 / CON-02 / SIM-03 | merged baseline | preserve invariants during later integration |
+| UI-04 controls and SIM-03 integration | implementation merged in #10 | UI-04-QA and PERF-01 acceptance below |
+| EXT-01 queue retention / missed sales / playback business snapshots | implemented and merged in #11 | preserve semantics; no duplicate implementation task |
+| ANA-03 destination analytics | not implemented | next backend feature |
+| UI-03 full results dashboard | not implemented | consume final result, not selected-frame demo values |
+| INT-01 / ANA-02 / REL-01 | not implemented | follow dependencies and release checks |
+
+Next feature path: `ANA-03 → UI-03 + INT-01 → ANA-02 → REL-01`.
+UI-04-QA and PERF-01 run alongside feature work and must close before release.
+The original graph/estimates below describe dependencies, not remaining effort
+or a claim that already merged tasks need rebuilding.
+
 ## Dependency graph and critical path
 
 ```text
@@ -25,7 +48,7 @@ ANA-01 + INT-01 -> ANA-02 recommendations [B, A reviews]
 UI-02 + UI-03 + INT-01 + ANA-02 -> REL-01 demo hardening/deploy [J]
 ```
 
-Critical path: `CON-01 → SIM-01 → SIM-02 → ANA-01 → CON-02 → SIM-03 → ANA-03 → INT-01 → REL-01`.
+Original implementation critical path: `CON-01 → SIM-01 → SIM-02 → ANA-01 → CON-02 → SIM-03 → ANA-03 → INT-01 → REL-01`.
 
 ## First five coding tasks
 
@@ -144,6 +167,10 @@ Do not hide behavior or contract work inside those existing task branches.
 
 ### ANA-03 — destination visit and dwell metrics
 
+**Continuation:** consume the current merged destination ledger. Queue retention
+and missed-sale events already exist; do not rebuild them here. Existing vendor
+reducers remain authoritative. Full result destination arrays are currently empty.
+
 - **Owner / agent:** Developer B; simulation engineer.
 - **Files:** `src/analytics/destinations/**` and adjacent tests.
 - **Dependencies / inputs:** SIM-03 event ledger and ANA-01 metric ownership
@@ -160,6 +187,11 @@ Do not hide behavior or contract work inside those existing task branches.
 - **Checkpoint:** CP3B behavior slice.
 
 ### UI-04 — vendor price and advanced behavior controls
+
+**Status:** implementation merged in #10; current consolidated behavior includes
+subsequent demo presentation changes in #11. The original frontend scope below
+is preserved; cross-layer deviations are tracked explicitly as EXT-01. Manual
+and performance acceptance remain under UI-04-QA/PERF-01, not marked complete.
 
 - **Owner / agent:** Developer A; frontend engineer.
 - **Files:** `src/features/editor/**`, a focused simulation-settings feature,
@@ -182,16 +214,49 @@ Do not hide behavior or contract work inside those existing task branches.
 - **Effort:** 3–5 hours.
 - **Checkpoint:** CP3B behavior slice.
 
+## Explicit scope extension and acceptance follow-up
+
+### EXT-01 — queue retention and playback-paced business statistics
+
+- **Status:** implemented and merged in #11, not a new coding backlog item.
+- **Scope change:** user requests expanded original UI-04 beyond controls into
+  engine behavior, shared output contracts and analytics. A owns presentation;
+  B owns engine/analytics; shared contract changes are joint-owned under AGENTS.
+- **Delivered:** long/full queue departure re-enters bounded destination choice;
+  engine-provided 15-second frustration marker and queueFull; missed_sale event
+  valued at average vendor price; analytics missedSales counts/value; event-derived
+  cumulative business values on frames; synchronized restart/rerun/scrub display.
+- **Semantics:** normal visit/time/budget limits still apply. Modeled missed sales
+  count attempts, not unique people, and are not actual lost festival revenue.
+  Service/dwell still exist despite simplified presentation categories.
+- **Evidence:** latest implementation `3fa38f2`: verify passed 182 tests, lint,
+  types and build. Main tracked tree matches that implementation. Browser checks
+  demonstrated full queues, current frustrated count, zero resets and timed values.
+- **Next changes:** use a separate explicitly scoped behavior/analytics task and
+  joint review for new shared fields; do not hide those changes in ANA-03/UI-03.
+
+### UI-04-QA — close remaining manual acceptance
+
+- **Owner:** A, joint review for cross-layer findings.
+- **Inputs:** merged UI-04 + EXT-01 and consolidated handoff.
+- **Work:** full keyboard/field-error audit, vendor creation, stage/amenity
+  assumptions, complete amenity move/resize/delete/undo/export lifecycle,
+  missing-type smoke, narrow statistics/ledger layout, prior-run/warning cases.
+- **Acceptance:** record browser/device, performed steps and outcomes; confirm
+  restart/rerun zeroes business figures, pause freezes them and scrub uses matching
+  timestamps without altering final result metrics. No unverified item marked done.
+- **Status:** pending; automated coverage and earlier smoke checks are evidence,
+  not completion of every manual flow. Performance measurement is PERF-01.
+
 ## Remaining backlog
 
 | ID      | Description                            | Owner / agent            | Files owned                                        | Depends on                    | Output and acceptance                                                                              | Effort | Checkpoint     |
 | ------- | -------------------------------------- | ------------------------ | -------------------------------------------------- | ----------------------------- | -------------------------------------------------------------------------------------------------- | -----: | -------------- |
-| ANA-01  | Derive metrics from event ledger       | B / simulation engineer  | `src/analytics/metrics/**`                         | SIM-02                        | Vendor/totals exactly reconcile with events; wait/queue/utilization tests                          |   2–3h | CP3 load slice |
-| UI-03   | Metrics dashboard                      | A / frontend engineer    | `src/features/dashboard/**`                        | ANA-01, ANA-03                | Recharts views render missing/zero vendor and destination data and do no canonical math            |   2–3h | CP3B           |
-| INT-01  | Baseline vs alternative                | J / integration reviewer | narrow composition + `src/analytics/comparison/**` | SIM-03, UI-04, ANA-01, ANA-03 | Same profiles, intent assignments, and behavior settings; incompatible inputs warn; visible deltas |     3h | CP4 comparison |
+| UI-03   | Metrics dashboard                      | A / frontend engineer    | `src/features/dashboard/**`                        | ANA-01, ANA-03                | Final-result views use ActiveRun snapshots; vendor/destination zero and missing states; no canonical UI math            |   2–3h | CP3B           |
+| INT-01  | Baseline vs alternative                | J / integration reviewer | narrow composition + `src/analytics/comparison/**` | SIM-03, UI-04, ANA-01, ANA-03 | Common profiles/seed/duration/demand/behavior/model semantics; incompatible runs warn or reject; visible deltas |     3h | CP4 comparison |
 | ANA-02  | Placement/capacity rules               | B, A UX review           | `src/analytics/recommendations/**`                 | ANA-01, INT-01                | Legal candidate positions; evidence/threshold on every recommendation                              |     3h | CP4            |
 | PERF-01 | 300-agent benchmark and payload budget | B engine, A renderer     | tests/scripts only                                 | CP3                           | Simulation <2s target; frame payload documented; no O(n²) surprise without note                    |   1–2h | feature freeze |
-| REL-01  | Demo hardening and Vercel preview      | J / integration reviewer | config, docs, smoke tests                          | all P0                        | `npm run verify`; preview works without signup; demo script succeeds                               |   3–4h | CP5 release    |
+| REL-01  | Demo hardening and Vercel preview      | J / integration reviewer | config, docs, smoke tests                          | all P0 + UI-04-QA + PERF-01     | `npm run verify`; preview works without signup; demo script succeeds                               |   3–4h | CP5 release    |
 | P1-CSV  | Validated CSV import                   | A                        | new import feature                                 | P0 deployed                   | Explicit column mapping/errors; no silent coercion                                                 |     3h | optional       |
 | P1-AI   | Explain structured comparison          | A                        | server route + explanation UI                      | P0 deployed, API approval     | No raw secrets/client key; calculations unchanged; graceful no-key mode                            |   3–4h | optional       |
 
@@ -224,3 +289,19 @@ amenities that remain unqueued, and bounded seeded waypoints instead of free
 random walks. Highest risks are contract churn, frame payload/rendering, and
 unfair comparisons; mitigate with CON-02, 1 Hz frames, named streams, and
 shared profiles/intents/preferences/budgets.
+
+## Downstream integration notes
+
+- UI-03 shows final result.vendorMetrics/result.totals and ANA-03 outputs. The
+  demo's selected-frame revenue table is not a full dashboard and must not
+  replace final-result reporting. Both can coexist, clearly labeled.
+- INT-01 must account for optional frustration/missed-sale/timed-frame outputs
+  and behavioral compatibility: old timeout-exits runs differ from current
+  timeout-reselects runs even if both use schemaVersion 1. Select a visible
+  warning/rejection or separately reviewed versioning approach in that task.
+- PERF-01 must measure current 300-guest rendering, synchronous engine time and
+  payload including new per-frame business/frustration data. FPS is unknown;
+  do not reuse old measurements as evidence.
+- REL-01 depends on a complete end-to-end demo: edit assumptions → run → inspect
+  timed playback and final results → compare compatible scenarios → show
+  evidence-backed recommendations. Deploy only after required checks pass.

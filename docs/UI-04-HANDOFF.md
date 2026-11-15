@@ -1,5 +1,12 @@
 # UI-04 integrated with merged SIM-03
 
+> Current status (2026-11-14): this work is merged through UI-04 PR #10 and
+> queue-retention PR #11 on main `785ed94`. See
+> [the consolidated handoff](./UI-04-CONSOLIDATED-HANDOFF.md) and TASKS for the
+> current scope and next steps. Draft/blocked/no-PR claims below are historical
+> evidence, not current status. New shared changes still require joint review.
+
+
 ## Current status and baseline
 
 2026-11-14: UI-04 is compatible with merged SIM-03 for the public engine handoff,
