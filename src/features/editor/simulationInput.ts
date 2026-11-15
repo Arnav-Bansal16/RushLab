@@ -1,4 +1,9 @@
-import type { Festival, SimulationSettings } from "@/domain";
+import {
+  resolveBehaviorSettings,
+  type Festival,
+  type SimulationSettings,
+} from "../../domain";
+import { behaviorInputWarnings } from "../simulation-settings/warnings";
 import type { LayoutDocument } from "./layout";
 
 /** Copy only the approved engine contract. No editor annotations or shared references. */
@@ -13,6 +18,7 @@ export function snapshotFestival(layout: LayoutDocument): Festival {
     paths: layout.paths,
     obstacles: layout.obstacles,
     vendors: layout.vendors,
+    ...(layout.amenities === undefined ? {} : { amenities: layout.amenities }),
   });
 }
 
@@ -49,6 +55,7 @@ export function validateSimulationFestival(festival: Festival): string[] {
     ...festival.entrances,
     ...festival.stages,
     ...festival.vendors,
+    ...(festival.amenities ?? []),
     ...festival.paths,
     ...festival.obstacles,
   ];
@@ -80,7 +87,9 @@ export function validateSimulationFestival(festival: Festival): string[] {
       ) ||
       !nonnegative(vendor.popularity) ||
       !nonnegative(vendor.averagePrice) ||
+      vendor.averagePrice > 10000 ||
       !positive(vendor.serviceTimeSeconds) ||
+      vendor.serviceTimeSeconds > 3600 ||
       !Number.isSafeInteger(vendor.servers) ||
       vendor.servers < 1 ||
       (vendor.inventory !== null &&
@@ -92,6 +101,28 @@ export function validateSimulationFestival(festival: Festival): string[] {
         `Vendor ${vendor.id} has invalid service or inventory settings.`,
       );
   }
+  for (const place of [...festival.stages, ...(festival.amenities ?? [])]) {
+    const range = place.dwellDurationOverrideSeconds;
+    if (
+      range &&
+      (![range.minimum, range.maximum].every(
+        (v) => Number.isFinite(v) && v >= 0 && v <= 3600,
+      ) ||
+        range.minimum > range.maximum)
+    )
+      issues.push(
+        `${place.id} dwell range must be ordered from 0 through 3600 seconds.`,
+      );
+  }
+  for (const amenity of festival.amenities ?? [])
+    if (
+      !sizeValid(amenity.size, amenity.position) ||
+      !nonnegative(amenity.attraction) ||
+      !["restroom", "seating", "first_aid"].includes(amenity.type)
+    )
+      issues.push(
+        `Amenity ${amenity.id} has invalid geometry, type or attraction.`,
+      );
   for (const path of festival.paths)
     if (
       path.points.length < 2 ||
@@ -145,12 +176,26 @@ export function prepareSimulationInput(
     errors.push("Simulation step must not exceed duration.");
   if (settings.frameIntervalSeconds < settings.stepSeconds)
     errors.push("Frame interval must not be shorter than the simulation step.");
+  let behavior;
+  try {
+    behavior = structuredClone(resolveBehaviorSettings(settings.behavior));
+  } catch (error) {
+    errors.push(
+      error instanceof Error ? error.message : "Invalid behavior settings.",
+    );
+  }
   const warnings = layout.editor.elements.length
     ? [
         "Exits and custom areas are visual annotations only; the simulation receives no exit-routing or custom-area behavior.",
       ]
     : [];
+  if (behavior) warnings.push(...behaviorInputWarnings(festival, behavior));
   return errors.length
     ? { ok: false, errors, warnings }
-    : { ok: true, festival, settings: structuredClone(settings), warnings };
+    : {
+        ok: true,
+        festival,
+        settings: structuredClone({ ...settings, behavior }),
+        warnings,
+      };
 }

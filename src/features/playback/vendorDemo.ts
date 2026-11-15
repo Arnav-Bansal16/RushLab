@@ -55,6 +55,32 @@ export function createVendorDemo() {
         widthMeters: 8,
       },
     ],
+    amenities: [
+      {
+        id: "market-seating",
+        name: "Garden seating",
+        type: "seating",
+        position: { x: 42, y: 8 },
+        size: { width: 12, height: 8 },
+        attraction: 0.5,
+      },
+      {
+        id: "market-restroom",
+        name: "Restrooms",
+        type: "restroom",
+        position: { x: 76, y: 8 },
+        size: { width: 8, height: 6 },
+        attraction: 0.5,
+      },
+      {
+        id: "market-first-aid",
+        name: "First aid",
+        type: "first_aid",
+        position: { x: 110, y: 8 },
+        size: { width: 8, height: 6 },
+        attraction: 0.5,
+      },
+    ],
     obstacles: [],
     vendors: stalls.map((stall, index) => ({
       id: `market-vendor-${index + 1}`,
@@ -79,4 +105,47 @@ export const vendorDemoSettings: SimulationSettings = {
   stepSeconds: 0.5,
   frameIntervalSeconds: 1,
   walkingSpeedMetersPerSecond: 1.4,
+};
+
+/** A visitor-retention demo, separate from the stockout regression example above. */
+export function createFestivalDemo() {
+  const layout = createVendorDemo();
+  layout.name = "Riverside Festival · stay and explore";
+  layout.entrances = [
+    {
+      ...layout.entrances[0],
+      name: "Main entrance / EXIT",
+      position: { x: 8, y: 50 },
+    },
+  ];
+  layout.amenities!.find((item) => item.type === "restroom")!.name = "Bathroom";
+  layout.vendors = layout.vendors.map((vendor, index) => ({
+    ...vendor,
+    averagePrice: [5, 7, 3, 4, 8, 3, 10, 5][index],
+    serviceTimeSeconds: 30,
+    servers: 1,
+    inventory: null,
+    queueLimit: null,
+  }));
+  return layout;
+}
+export const festivalDemoSettings: SimulationSettings = {
+  ...vendorDemoSettings,
+  durationSeconds: 600,
+  behavior: {
+    maximumItineraryStops: 6,
+    maximumVendorStops: 6,
+    maximumStageStops: 6,
+    maximumAmenityStops: 6,
+    maximumVisitsPerDestination: 2,
+    deterministicExitProbabilityAfterStop: 0,
+    minimumRemainingTimeSeconds: 0,
+    queueToleranceMultiplier: 5,
+    dwellDurationSeconds: {
+      stage: { minimum: 90, maximum: 180 },
+      seating: { minimum: 90, maximum: 180 },
+      restroom: { minimum: 30, maximum: 60 },
+      first_aid: { minimum: 60, maximum: 120 },
+    },
+  },
 };

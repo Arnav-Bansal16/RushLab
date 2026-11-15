@@ -3,13 +3,17 @@ import type { Festival, SimulationFrame } from "../../domain";
 import {
   attendeeDescription,
   statusStyles,
+  betweenStopsStyle,
   vendorDisplay,
 } from "./presentation";
 
 export function StatusLegend() {
   return (
     <ul className="status-legend" aria-label="Attendee status legend">
-      {Object.entries(statusStyles).map(([key, style]) => (
+      {Object.entries({
+        ...statusStyles,
+        between_stops: betweenStopsStyle,
+      }).map(([key, style]) => (
         <li key={key}>
           <svg
             width="10"
@@ -80,6 +84,7 @@ export function FrameDetails({
                 <th scope="col">Waiting</th>
                 <th scope="col">Inventory remaining</th>
                 <th scope="col">Completed purchases</th>
+                <th scope="col">Average price (display currency units)</th>
               </tr>
             </thead>
             <tbody>
@@ -99,6 +104,10 @@ export function FrameDetails({
                       )}
                     </td>
                     <td>{value.sales}</td>
+                    <td>
+                      {festival.vendors.find((v) => v.id === state.vendorId)
+                        ?.averagePrice ?? "Unknown"}
+                    </td>
                   </tr>
                 );
               })}

@@ -1,3 +1,5 @@
+import { multiDestinationFestival } from "../../fixtures/multiDestination";
+import { demoFestival } from "../../fixtures/demoFestival";
 import type { Festival, Point, Size, VendorCategory } from "@/domain";
 import { clampVendorPosition, pathFootprint } from "./geometry";
 
@@ -64,6 +66,7 @@ export function createBlankLayout(): LayoutDocument {
     boundsMeters: { width: 120, height: 80 },
     entrances: [],
     stages: [],
+    amenities: [],
     vendors: [],
     paths: [],
     obstacles: [],
@@ -135,6 +138,12 @@ export function layoutItems(doc: LayoutDocument): LayoutItem[] {
       color: "#91a38b",
       shape: "rectangle" as const,
     })),
+    ...(doc.amenities ?? []).map((item) => ({
+      ...item,
+      kind: item.type,
+      color: "#79a5be",
+      shape: "rectangle" as const,
+    })),
     ...doc.editor.elements,
   ].map((item) => ({
     ...item,
@@ -151,6 +160,10 @@ export interface NewComponent {
   shape: "rectangle" | "circle";
   category: VendorCategory;
   servers: number;
+  dwellDurationOverrideSeconds?: import("../../domain").DwellDurationRange;
+  attraction?: number;
+  averagePrice?: number;
+  serviceTimeSeconds?: number;
 }
 export function addComponent(
   doc: LayoutDocument,
@@ -165,6 +178,37 @@ export function addComponent(
     details.servers < 1
   )
     throw new Error("Invalid component dimensions or service counters.");
+  if (
+    details.kind === "vendor" &&
+    (!Number.isFinite(
+      details.averagePrice ?? demoFestival.vendors[0].averagePrice,
+    ) ||
+      (details.averagePrice ?? demoFestival.vendors[0].averagePrice) < 0 ||
+      (details.averagePrice ?? demoFestival.vendors[0].averagePrice) > 10000 ||
+      !Number.isFinite(
+        details.serviceTimeSeconds ??
+          demoFestival.vendors[0].serviceTimeSeconds,
+      ) ||
+      (details.serviceTimeSeconds ??
+        demoFestival.vendors[0].serviceTimeSeconds) <= 0 ||
+      (details.serviceTimeSeconds ??
+        demoFestival.vendors[0].serviceTimeSeconds) > 3600)
+  )
+    throw new Error("Invalid vendor price or service time.");
+  if (
+    details.attraction !== undefined &&
+    (!Number.isFinite(details.attraction) || details.attraction < 0)
+  )
+    throw new Error("Attraction must be finite and non-negative.");
+  const range = details.dwellDurationOverrideSeconds;
+  if (
+    range &&
+    (![range.minimum, range.maximum].every(
+      (v) => Number.isFinite(v) && v >= 0 && v <= 3600,
+    ) ||
+      range.minimum > range.maximum)
+  )
+    throw new Error("Invalid dwell range.");
   const used = new Set([doc.id, ...layoutItems(doc).map((item) => item.id)]);
   let index = 1;
   while (used.has(`${details.kind}-${index}`)) index++;
@@ -198,14 +242,26 @@ export function addComponent(
         category: details.category,
         servers: details.servers,
         popularity: 0.5,
-        averagePrice: 12,
-        serviceTimeSeconds: 75,
+        averagePrice:
+          details.averagePrice ?? demoFestival.vendors[0].averagePrice,
+        serviceTimeSeconds:
+          details.serviceTimeSeconds ??
+          demoFestival.vendors[0].serviceTimeSeconds,
         inventory: null,
         queueLimit: null,
       });
       break;
     case "stage":
-      next.stages.push({ id, name, position, size, attraction: 0.9 });
+      next.stages.push({
+        id,
+        name,
+        position,
+        size,
+        attraction: details.attraction ?? demoFestival.stages[0].attraction,
+        ...(range
+          ? { dwellDurationOverrideSeconds: structuredClone(range) }
+          : {}),
+      });
       break;
     case "path":
       next.paths.push({
@@ -226,6 +282,23 @@ export function addComponent(
           { x: position.x + size.width, y: position.y + size.height },
           { x: position.x, y: position.y + size.height },
         ],
+      });
+      break;
+    case "seating":
+    case "restroom":
+    case "first_aid":
+      (next.amenities ??= []).push({
+        id,
+        name,
+        type: details.kind,
+        position,
+        size,
+        attraction:
+          details.attraction ??
+          multiDestinationFestival.amenities[0].attraction,
+        ...(range
+          ? { dwellDurationOverrideSeconds: structuredClone(range) }
+          : {}),
       });
       break;
     default:
@@ -283,7 +356,12 @@ export function editComponent(
   );
   if (patch.name !== undefined) next.editor.labels[id] = patch.name;
   if (patch.color !== undefined) next.editor.colors[id] = patch.color;
-  for (const item of [...next.entrances, ...next.stages, ...next.vendors])
+  for (const item of [
+    ...next.entrances,
+    ...next.stages,
+    ...next.vendors,
+    ...(next.amenities ?? []),
+  ])
     if (item.id === id) {
       item.position = position;
       if (patch.name !== undefined) item.name = patch.name;
@@ -334,6 +412,9 @@ export function removeComponent(
     entrances: doc.entrances.filter((item) => item.id !== id),
     stages: doc.stages.filter((item) => item.id !== id),
     vendors: doc.vendors.filter((item) => item.id !== id),
+    ...(doc.amenities === undefined
+      ? {}
+      : { amenities: doc.amenities.filter((item) => item.id !== id) }),
     paths: doc.paths.filter((item) => item.id !== id),
     obstacles: doc.obstacles.filter((item) => item.id !== id),
     editor: {

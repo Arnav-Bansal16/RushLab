@@ -236,7 +236,15 @@ export default function MapCanvas({
               </Group>
             );
           })}
-          {annotations.map((element) => (
+          {[
+            ...annotations,
+            ...(festival.amenities ?? []).map((item) => ({
+              ...item,
+              kind: item.type,
+              color: "#79a5be",
+              shape: "rectangle" as const,
+            })),
+          ].map((element) => (
             <Group
               key={element.id}
               {...point(element.position)}
@@ -415,8 +423,8 @@ export default function MapCanvas({
                 cornerRadius={3}
               />
               <Text
-                text={labels[vendor.id] ?? vendor.name}
-                y={-22}
+                text={`${labels[vendor.id] ?? vendor.name}\nAvg. price: ${vendor.averagePrice} currency units`}
+                y={-34}
                 x={-32}
                 width={vendor.size.width * s + 64}
                 align="center"

@@ -1,9 +1,12 @@
 "use client";
+import BehaviorControls, {
+  readBehavior,
+} from "../simulation-settings/BehaviorControls";
 import { useState } from "react";
 import type { SimulationSettings } from "../../domain";
 import type { LayoutDocument } from "../editor/layout";
 import { executeRun, type ActiveRun } from "./run";
-import { createVendorDemo, vendorDemoSettings } from "./vendorDemo";
+import { createFestivalDemo, festivalDemoSettings } from "./vendorDemo";
 import PlaybackView, { RunMessages } from "./PlaybackView";
 import "./playback.css";
 
@@ -78,11 +81,10 @@ export default function PlaybackWorkspace({
         </p>
       </header>
       <p role="note" className="demo-context">
-        Modeled assumptions: this version models vendor preferences, queue
-        patience, purchases, and stockouts. Prices and personal budgets do not
-        yet influence choices. Multi-stop visits, roaming, and stage or amenity
-        dwell are planned for a future update.
-        Results are modeled estimates, not forecasts.
+        Modeled assumptions: guests make price- and budget-sensitive vendor
+        choices, take bounded visits to vendors, stages and amenities, roam,
+        queue, dwell and exit. Vendors alone have queues and service. These are
+        modeled estimates, not forecasts of real customer behavior.
       </p>
       <form
         className="run-settings"
@@ -102,6 +104,7 @@ export default function PlaybackWorkspace({
           const duration = String(data.get("durationMinutes") ?? "");
           settings.durationSeconds =
             duration.trim() === "" ? NaN : Number(duration) * 60;
+          settings.behavior = readBehavior(data);
           startRun(layout, settings);
         }}
       >
@@ -135,6 +138,7 @@ export default function PlaybackWorkspace({
         </button>
         <details className="advanced-run-settings">
           <summary>Advanced settings</summary>
+          <BehaviorControls />
           <div>
             {advancedFields.map((field) => (
               <div key={field.key}>
@@ -156,14 +160,18 @@ export default function PlaybackWorkspace({
         <div>
           <strong>See a busier event first</strong>
           <p>
-            8 vendors · 2 entrances · 300 guests · a 3-minute preview. Your
-            editor layout stays unchanged.
+            8 vendors · a stage · bathroom, seating and first aid · a marked
+            exit · 300 guests · a 10-minute stay-and-explore preview. Longer
+            dwell, patient queues and no random post-stop exits keep visits
+            inside the festival. Your editor layout stays unchanged.
           </p>
         </div>
         <button
           type="button"
           className="secondary"
-          onClick={() => startRun(createVendorDemo(), vendorDemoSettings, true)}
+          onClick={() =>
+            startRun(createFestivalDemo(), festivalDemoSettings, true)
+          }
         >
           Try the 8-vendor demo
         </button>
@@ -181,16 +189,21 @@ export default function PlaybackWorkspace({
             <div className="demo-context" role="note">
               <strong>Watching the 8-vendor example</strong>
               <p>
-                Watch guests arrive, wait in amber, receive service in green,
-                and leave in purple. The table follows the same recorded moment.
-                This example uses illustrative stock and service settings;
-                SIM-02 calculates all queues, purchases, and stockouts.
+                Guests moving between stops are orange; queues are amber,
+                service is green, and guests leaving the festival are magenta.
+                Gray faded guests have exited. The table follows the same
+                recorded moment. Guests can also roam and dwell at the stage,
+                seating, restrooms and first aid. The engine calculates choices,
+                visits, queues, purchases and stockouts from illustrative
+                assumptions. The marked entrance/exit is the engine’s actual
+                departure point. Longer visits reduce early exits; the recording
+                still ends after ten minutes.
               </p>
             </div>
           )}
           <PlaybackView
             autoPlay
-            initialSpeed={active.example ? 4 : 1}
+            initialSpeed={1}
             festival={active.run.festivalSnapshot}
             result={active.run.result}
             warnings={active.run.warnings}

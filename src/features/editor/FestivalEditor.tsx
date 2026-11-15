@@ -5,7 +5,9 @@ import { useCallback, useRef, useState } from "react";
 import type { Point } from "@/domain";
 import { demoFestival } from "@/fixtures/demoFestival";
 import { downloadLayoutImage } from "./exportImage";
+import BehaviorAttributes from "./BehaviorAttributes";
 import ComponentForm from "./ComponentForm";
+import { createFestivalDemo } from "../playback/vendorDemo";
 import PlaybackWorkspace from "../playback/PlaybackWorkspace";
 import {
   snapshotFestival,
@@ -260,6 +262,18 @@ export default function FestivalEditor() {
           >
             Load example
           </button>
+          <button
+            className="secondary"
+            onClick={() => {
+              commit(
+                createFestivalDemo(),
+                "Behavior example loaded. Edit prices, attraction and dwell assumptions before running.",
+              );
+              setSelectedId("");
+            }}
+          >
+            Load behavior example
+          </button>
         </div>
       </section>
       <div className="venue-builder-layout">
@@ -469,6 +483,19 @@ export default function FestivalEditor() {
                   </select>
                 </>
               )}
+              <BehaviorAttributes
+                key={JSON.stringify([
+                  selected.id,
+                  vendor?.averagePrice,
+                  vendor?.serviceTimeSeconds,
+                  [...layout.stages, ...(layout.amenities ?? [])].find(
+                    (item) => item.id === selected.id,
+                  ),
+                ])}
+                layout={layout}
+                id={selected.id}
+                onChange={commit}
+              />
               {vendor && (
                 <>
                   <label htmlFor="servers">Service counters</label>
