@@ -13,10 +13,8 @@ import type {
   ScenarioComparison,
   SeedEvaluation,
   IssueCategory,
-  SimulationResult,
 } from "../../domain";
 import { totalMissedSaleValue } from "../../analytics/metrics/totalMissedSaleValue";
-import { demoImprovementTargets } from "../../analytics/metrics/demoTargets";
 import type { ActiveRun } from "../playback/run";
 
 const label = (value: string) => value.replaceAll("_", " ");
@@ -588,41 +586,6 @@ export function ImprovementSummary({ output }: { output: LayoutOptimization }) {
   );
 }
 
-export function DemoBeforeAfter({ result }: { result: SimulationResult }) {
-  const rows = demoImprovementTargets(result);
-  const format = (value: number | undefined, money: boolean) =>
-    value === undefined
-      ? "Unavailable"
-      : value.toLocaleString("en-US", {
-          minimumFractionDigits: money ? 2 : 0,
-          maximumFractionDigits: 2,
-        });
-  return (
-    <section
-      className="improvement-summary"
-      aria-label="Illustrative before and after"
-    >
-      <h3>Before and after</h3>
-      <p>Illustrative 20% improvement target — not simulated after-results.</p>
-      <Table
-        caption="Demo improvement targets"
-        headings={[
-          "Statistic",
-          "Before (simulated)",
-          "After (illustrative target)",
-        ]}
-      >
-        {rows.map((row) => (
-          <tr key={row.label}>
-            <th scope="row">{row.label}</th>
-            <td>{format(row.before, row.money)}</td>
-            <td>{format(row.after, row.money)}</td>
-          </tr>
-        ))}
-      </Table>
-    </section>
-  );
-}
 export function OptimizationEvidence({
   output,
   summary,
@@ -803,9 +766,7 @@ export default function LayoutReport({
       aria-label="Layout issues and candidate evaluation"
     >
       <Issues report={output?.issues ?? issues} />
-      {demo ? (
-        <DemoBeforeAfter result={run.result} />
-      ) : output ? (
+      {demo ? null : output ? (
         <OptimizationEvidence output={output} />
       ) : (
         <section className="improvement-summary">
