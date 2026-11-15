@@ -68,6 +68,45 @@ export function AttendeeMarks({
     </>
   );
 }
+export function AmenityMarks({
+  festival,
+  transform,
+}: {
+  festival: Festival;
+  transform: Viewport;
+}) {
+  return (
+    <>
+      {(festival.amenities ?? []).map((item) => (
+        <Group
+          key={item.id}
+          name="amenity"
+          {...metersToPixels(item.position, transform)}
+        >
+          <Rect
+            width={item.size.width * transform.scale}
+            height={item.size.height * transform.scale}
+            fill={
+              { restroom: "#79a5be", seating: "#a5b5da", first_aid: "#e39799" }[
+                item.type
+              ]
+            }
+            stroke="#334a50"
+          />
+          <Text
+            text={`${item.name} · ${item.type.replaceAll("_", " ")}`}
+            x={-30}
+            y={-16}
+            width={item.size.width * transform.scale + 60}
+            align="center"
+            fontSize={11}
+            fill="#233f45"
+          />
+        </Group>
+      ))}
+    </>
+  );
+}
 function PlaybackCanvas({
   festival,
   frame,
@@ -152,6 +191,7 @@ function PlaybackCanvas({
               />
             </Group>
           ))}
+          <AmenityMarks festival={festival} transform={transform} />
           {festival.entrances.map((item) => (
             <Group key={item.id} {...point(item.position)}>
               <Circle radius={6} fill="#247963" />

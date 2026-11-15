@@ -32,6 +32,20 @@ export function readBehavior(data: FormData): BehaviorSettings {
   }
   return result;
 }
+export function behaviorLabel(path: string) {
+  const label = path
+    .replaceAll(".", " · ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replaceAll("_", " ");
+  return (
+    label +
+    (path.includes("Seconds")
+      ? " (seconds)"
+      : path === "walkingSpeedMetersPerSecond"
+        ? " (meters/second)"
+        : "")
+  );
+}
 export default function BehaviorControls() {
   const [error, setError] = useState("");
   return (
@@ -55,8 +69,10 @@ export default function BehaviorControls() {
       <p id="behavior-help">
         Weights are relative modeled tendencies, not guaranteed visit
         percentages. Zero weights are accepted unchanged. Missing types and
-        fallback choices are handled by the engine. The current engine saves
-        advanced assumptions but does not yet use them for destination choices.
+        fallback choices are handled by the engine. These assumptions influence
+        price-sensitive choices, bounded visits, roaming, queue patience and
+        dwell. If all destination-type weights are zero, guests exit without a
+        visit.
       </p>
       <p>
         Overall stops: integer 1–6; type caps: integer 0–overall; visits per
@@ -70,13 +86,7 @@ export default function BehaviorControls() {
       </p>
       {behaviorFields().map(({ path, value }) => (
         <div key={path}>
-          <label htmlFor={`behavior.${path}`}>
-            {path
-              .replaceAll(".", " · ")
-              .replace(/([a-z])([A-Z])/g, "$1 $2")
-              .replaceAll("_", " ")}
-            {path.includes("Seconds") ? " (seconds)" : ""}
-          </label>
+          <label htmlFor={`behavior.${path}`}>{behaviorLabel(path)}</label>
           <input
             id={`behavior.${path}`}
             name={`behavior.${path}`}

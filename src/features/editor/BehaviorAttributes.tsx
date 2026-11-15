@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { AmenityType } from "../../domain";
 import type { LayoutDocument } from "./layout";
 import { parseNumeric } from "../simulation-settings/BehaviorControls";
 
@@ -18,28 +19,33 @@ export default function BehaviorAttributes({
   const [draft, setDraft] = useState<Record<string, string>>({
     averagePrice: String(vendor?.averagePrice ?? ""),
     serviceTimeSeconds: String(vendor?.serviceTimeSeconds ?? ""),
+    attraction: String(place?.attraction ?? ""),
     minimum: String(place?.dwellDurationOverrideSeconds?.minimum ?? ""),
     maximum: String(place?.dwellDurationOverrideSeconds?.maximum ?? ""),
   });
+  const [amenityType, setAmenityType] = useState<AmenityType | undefined>(
+    layout.amenities?.find((item) => item.id === id)?.type,
+  );
   const [override, setOverride] = useState(
     !!place?.dwellDurationOverrideSeconds,
   );
   const fields = vendor
     ? ["averagePrice", "serviceTimeSeconds"]
-    : place && override
-      ? ["minimum", "maximum"]
+    : place
+      ? ["attraction", ...(override ? ["minimum", "maximum"] : [])]
       : [];
   const errors = Object.fromEntries(
     fields.map((key) => {
       const value = parseNumeric(draft[key]);
-      const max = key === "averagePrice" ? 10000 : 3600;
+      const max =
+        key === "attraction" ? Infinity : key === "averagePrice" ? 10000 : 3600;
       return [
         key,
         !Number.isFinite(value) ||
         value < 0 ||
         value > max ||
         (key === "serviceTimeSeconds" && value === 0)
-          ? `Enter a finite value ${key === "serviceTimeSeconds" ? "greater than zero" : "from zero"} through ${max}.`
+          ? `Enter a finite value ${key === "serviceTimeSeconds" ? "greater than zero" : "from zero"} ${max === Infinity ? "with no upper limit" : `through ${max}`}.`
           : key === "maximum" && value < parseNumeric(draft.minimum)
             ? "Maximum must be at least minimum."
             : "",
@@ -49,7 +55,25 @@ export default function BehaviorAttributes({
   if (!vendor && !place) return null;
   return (
     <fieldset>
-      <legend>{vendor ? "Vendor assumptions" : "Dwell assumptions"}</legend>
+      <legend>
+        {vendor ? "Vendor assumptions" : "Destination assumptions"}
+      </legend>
+      {amenityType && (
+        <>
+          <label htmlFor="attribute-type">Amenity type</label>
+          <select
+            id="attribute-type"
+            value={amenityType}
+            onChange={(e) => setAmenityType(e.target.value as AmenityType)}
+          >
+            {(["restroom", "seating", "first_aid"] as const).map((type) => (
+              <option key={type} value={type}>
+                {type.replaceAll("_", " ")}
+              </option>
+            ))}
+          </select>
+        </>
+      )}
       {place && (
         <label>
           <input
@@ -73,7 +97,9 @@ export default function BehaviorAttributes({
               ? "Average price (display currency units)"
               : key === "serviceTimeSeconds"
                 ? "Service time (seconds)"
-                : `${key} dwell (seconds)`}
+                : key === "attraction"
+                  ? "Attraction (relative modeled tendency)"
+                  : `${key} dwell (seconds)`}
           </label>
           <input
             id={`attribute-${key}`}
@@ -100,12 +126,16 @@ export default function BehaviorAttributes({
           if ("averagePrice" in target) {
             target.averagePrice = parseNumeric(draft.averagePrice);
             target.serviceTimeSeconds = parseNumeric(draft.serviceTimeSeconds);
-          } else if (override)
-            target.dwellDurationOverrideSeconds = {
-              minimum: parseNumeric(draft.minimum),
-              maximum: parseNumeric(draft.maximum),
-            };
-          else delete target.dwellDurationOverrideSeconds;
+          } else {
+            target.attraction = parseNumeric(draft.attraction);
+            if ("type" in target && amenityType) target.type = amenityType;
+            if (override)
+              target.dwellDurationOverrideSeconds = {
+                minimum: parseNumeric(draft.minimum),
+                maximum: parseNumeric(draft.maximum),
+              };
+            else delete target.dwellDurationOverrideSeconds;
+          }
           onChange(next);
         }}
       >

@@ -3,6 +3,7 @@ import {
   type Festival,
   type SimulationSettings,
 } from "../../domain";
+import { behaviorInputWarnings } from "../simulation-settings/warnings";
 import type { LayoutDocument } from "./layout";
 
 /** Copy only the approved engine contract. No editor annotations or shared references. */
@@ -188,6 +189,7 @@ export function prepareSimulationInput(
         "Exits and custom areas are visual annotations only; the simulation receives no exit-routing or custom-area behavior.",
       ]
     : [];
+  if (behavior) warnings.push(...behaviorInputWarnings(festival, behavior));
   return errors.length
     ? { ok: false, errors, warnings }
     : {

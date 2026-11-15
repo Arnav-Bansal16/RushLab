@@ -81,11 +81,10 @@ export default function PlaybackWorkspace({
         </p>
       </header>
       <p role="note" className="demo-context">
-        Modeled assumptions: this version models vendor preferences, queue
-        patience, purchases, and stockouts. Prices and personal budgets do not
-        yet influence choices. Multi-stop visits, roaming, and stage or amenity
-        dwell are planned for a future update. Results are modeled estimates,
-        not forecasts.
+        Modeled assumptions: guests make price- and budget-sensitive vendor
+        choices, take bounded visits to vendors, stages and amenities, roam,
+        queue, dwell and exit. Vendors alone have queues and service. These are
+        modeled estimates, not forecasts of real customer behavior.
       </p>
       <form
         className="run-settings"
@@ -161,8 +160,8 @@ export default function PlaybackWorkspace({
         <div>
           <strong>See a busier event first</strong>
           <p>
-            8 vendors · 2 entrances · 300 guests · a 3-minute preview. Your
-            editor layout stays unchanged.
+            8 vendors · a stage · all three amenity types · 2 entrances · 300
+            guests · a 3-minute preview. Your editor layout stays unchanged.
           </p>
         </div>
         <button
@@ -188,8 +187,9 @@ export default function PlaybackWorkspace({
               <p>
                 Watch guests arrive, wait in amber, receive service in green,
                 and leave in purple. The table follows the same recorded moment.
-                This example uses illustrative stock and service settings;
-                SIM-02 calculates all queues, purchases, and stockouts.
+                Guests can also roam and dwell at the stage, seating, restrooms
+                and first aid. The engine calculates choices, visits, queues,
+                purchases and stockouts from illustrative assumptions.
               </p>
             </div>
           )}

@@ -55,6 +55,32 @@ export function createVendorDemo() {
         widthMeters: 8,
       },
     ],
+    amenities: [
+      {
+        id: "market-seating",
+        name: "Garden seating",
+        type: "seating",
+        position: { x: 42, y: 8 },
+        size: { width: 12, height: 8 },
+        attraction: 0.5,
+      },
+      {
+        id: "market-restroom",
+        name: "Restrooms",
+        type: "restroom",
+        position: { x: 76, y: 8 },
+        size: { width: 8, height: 6 },
+        attraction: 0.5,
+      },
+      {
+        id: "market-first-aid",
+        name: "First aid",
+        type: "first_aid",
+        position: { x: 110, y: 8 },
+        size: { width: 8, height: 6 },
+        attraction: 0.5,
+      },
+    ],
     obstacles: [],
     vendors: stalls.map((stall, index) => ({
       id: `market-vendor-${index + 1}`,

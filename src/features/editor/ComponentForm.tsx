@@ -1,4 +1,5 @@
 "use client";
+import { multiDestinationFestival } from "../../fixtures/multiDestination";
 import { demoFestival } from "../../fixtures/demoFestival";
 import { useState } from "react";
 import type { VendorCategory } from "@/domain";
@@ -85,6 +86,9 @@ export default function ComponentForm({
                   },
                 }
               : {}),
+            ...(["stage", "restroom", "seating", "first_aid"].includes(kind)
+              ? { attraction: Number(data.get("attraction")) }
+              : {}),
             width: Number(data.get("width") ?? 0),
             height: Number(data.get("height") ?? 0),
             color: String(data.get("color")),
@@ -147,7 +151,16 @@ export default function ComponentForm({
           type="color"
           defaultValue={defaults[kind].color}
         />
-        {!["gate", "vendor", "stage", "path", "obstacle"].includes(kind) && (
+        {![
+          "gate",
+          "vendor",
+          "stage",
+          "path",
+          "obstacle",
+          "seating",
+          "restroom",
+          "first_aid",
+        ].includes(kind) && (
           <>
             <label htmlFor="component-shape">Shape</label>
             <select id="component-shape" name="shape">
@@ -214,7 +227,23 @@ export default function ComponentForm({
         )}
         {["stage", "restroom", "seating", "first_aid"].includes(kind) && (
           <fieldset>
-            <legend>Dwell assumptions</legend>
+            <legend>Destination assumptions</legend>
+            <label htmlFor="create-attraction">
+              Attraction (relative modeled tendency)
+            </label>
+            <input
+              id="create-attraction"
+              name="attraction"
+              type="number"
+              min="0"
+              step="any"
+              required
+              defaultValue={
+                kind === "stage"
+                  ? demoFestival.stages[0].attraction
+                  : multiDestinationFestival.amenities[0].attraction
+              }
+            />
             <label>
               <input
                 type="checkbox"

@@ -7,6 +7,7 @@ import { demoFestival } from "@/fixtures/demoFestival";
 import { downloadLayoutImage } from "./exportImage";
 import BehaviorAttributes from "./BehaviorAttributes";
 import ComponentForm from "./ComponentForm";
+import { createVendorDemo } from "../playback/vendorDemo";
 import PlaybackWorkspace from "../playback/PlaybackWorkspace";
 import {
   snapshotFestival,
@@ -261,6 +262,18 @@ export default function FestivalEditor() {
           >
             Load example
           </button>
+          <button
+            className="secondary"
+            onClick={() => {
+              commit(
+                createVendorDemo(),
+                "Behavior example loaded. Edit prices, attraction and dwell assumptions before running.",
+              );
+              setSelectedId("");
+            }}
+          >
+            Load behavior example
+          </button>
         </div>
       </section>
       <div className="venue-builder-layout">
@@ -477,7 +490,7 @@ export default function FestivalEditor() {
                   vendor?.serviceTimeSeconds,
                   [...layout.stages, ...(layout.amenities ?? [])].find(
                     (item) => item.id === selected.id,
-                  )?.dwellDurationOverrideSeconds,
+                  ),
                 ])}
                 layout={layout}
                 id={selected.id}

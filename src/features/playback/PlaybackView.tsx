@@ -9,6 +9,7 @@ import {
   playbackReducer,
   type PlaybackAction,
 } from "./controller";
+import ResolvedAssumptions from "../simulation-settings/ResolvedAssumptions";
 import { FrameDetails, StatusLegend } from "./FrameDetails";
 import { startPlaybackAnimation } from "./animation";
 import "./playback.css";
@@ -205,6 +206,23 @@ export default function PlaybackView({
         onAction={dispatch}
       />
       <StatusLegend />
+      <ul aria-label="Map destination legend" className="status-legend">
+        {festival.stages.map((item) => (
+          <li key={item.id}>{item.name} · stage (dark green)</li>
+        ))}
+        {(festival.amenities ?? []).map((item) => (
+          <li key={item.id}>
+            {item.name} · {item.type.replaceAll("_", " ")} (
+            {item.type === "restroom"
+              ? "blue"
+              : item.type === "seating"
+                ? "lavender"
+                : "pink"}
+            )
+          </li>
+        ))}
+      </ul>
+      <ResolvedAssumptions settings={result.settings} />
       <details className="playback-recording-details">
         <summary>Recording details</summary>
         <p>

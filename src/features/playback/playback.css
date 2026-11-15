@@ -320,3 +320,16 @@
 [aria-invalid="true"] {
   outline: 2px solid #a32929;
 }
+
+.resolved-assumptions dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+  gap: 12px;
+}
+.resolved-assumptions dt {
+  overflow-wrap: anywhere;
+}
+.resolved-assumptions dd {
+  margin: 4px 0;
+  font-weight: 600;
+}

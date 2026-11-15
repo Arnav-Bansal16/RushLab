@@ -1,160 +1,199 @@
-# UI-04 acceptance checklist and implementation handoff
+# UI-04 integrated with merged SIM-03
 
-## Status
+## Current status and baseline
 
-Implemented for review on `codex/ui-04-behavior-controls`; draft PR required
-because manual coverage and fresh performance verification remain incomplete.
-This is not a claim that SIM-03, ANA-03, UI-03, or INT-01 is complete.
+2026-11-14: UI-04 is compatible with merged SIM-03 for the public engine handoff,
+canonical amenities, advanced controls and frame presentation. Full automated
+verification passes. Draft review remains appropriate because the fresh 30 FPS
+performance target and the complete manual acceptance checklist are unverified.
+This is not a claim that ANA-03, UI-03, INT-01 or release hardening is complete.
 
-Baseline fetched on 2026-11-14: GitHub `origin/main`
-`236028523928d8a7725f115713209d8bfbb0f688`. Existing branch work at `29c65b1`
-was preserved. Main is already an ancestor; no reset or duplicate merge needed.
-The acceptance matrix was recorded before implementation in `29c65b1`, then
-updated before application edits to acknowledge the current authorization.
+- Feature branch: `codex/ui-04-behavior-controls`; never push to `main`.
+- Fetched `origin/main`: `552883c` (SIM-03 implementation PR #8 and handoff PR #9).
+  It includes the reviewed SIM-03 head `4777c9c` and handoff `7b62648`.
+- Existing UI-04 work (`29c65b1`, `9e004bd`) was preserved. Main was merged into
+  the feature branch as `dff0a1e`, without reset, force-push or copied engine code.
+- Followed `docs/SIM-03-UI-04-HANDOFF.md`, current ARCHITECTURE, TASKS,
+  TESTING, INTEGRATION, public contracts/defaults and reviewed fixtures.
+- The earlier CON-02 baseline authorization still applies. The original review
+  records were empty; this does not prove no approval occurred or create a new
+  retrospective approval gate. No shared-contract/fixture changes were made.
 
-## Dependency evidence and superseded gates
+## Integration changes
 
-- Complete: git history confirms merged UI-02 #3, SIM-02 #4, ANA-01 #6 and
-  CON-02 #7 are ancestors of fetched main.
-- Complete: use merged CON-02 as explicitly authorized in the current request.
-  Fresh GitHub review and discussion queries for #7 returned empty arrays.
-  Both-developer approval is not independently verified; empty records do not
-  prove approval never happened and are not an additional implementation gate.
-- Superseded: previous UI-04 checklist's retrospective approval gate is replaced
-  by the user's merged-baseline authorization. No new contract/fixture edits.
-- Superseded: historical three-stop requirement is replaced by current
-  `docs/TASKS.md` UI-04/SIM-03, `docs/ARCHITECTURE.md`, and
-  `src/domain/behavior.ts`: default four; integer one through six; default
-  per-type two; revisits one by default, bounded by overall maximum.
-- Complete for input acceptance: `validateBehaviorSettings` accepts all-zero
-  intent, destination-type and vendor-category weights. UI preserves those zeros
-  without normalization, substitution or invented choices. INTEGRATION specifies
-  removal of missing types and safe exit for no eligible destinations.
-- Unverified engine fallback detail: all-zero intent selection and all-zero
-  eligible destination fallback are not specified fully by the current validator.
-  SIM-03 owns that behavior; UI makes no fallback decision. Its absence does not
-  block editing, validation, snapshotting or frame presentation.
-- SIM-03 and ANA-03 are absent from fetched main. The present engine saves
-  resolved settings but does not implement price-sensitive multi-stop behavior.
+1. Canonical amenity lifecycle: new layouts initialize `amenities: []`; seating,
+   restroom and first aid use approved `Amenity` objects. Existing create, move,
+   resize, delete, undo/clear, `fromFestival` and JSON snapshot paths retain them.
+   Missing amenities remain backwards compatible. Exits, parking and custom areas
+   stay visual-only; historical annotations are not inferred to be destinations.
+2. Stage/amenity attraction is visible/editable during creation and in the
+   inspector. Amenity type is editable. Optional location dwell overrides retain
+   explicit inheritance by removing the property when absent. Invalid drafts
+   remain visible and cannot be applied. Contract/demo initial values are shown.
+3. Advanced controls still use `DEFAULT_BEHAVIOR_SETTINGS` and the shared
+   validator, with no independent normalization or behavior decisions. Each
+   numeric leaf is covered by invalid/empty/nonfinite/boundary tests.
+4. Zero weights for destination types present in the layout produce an input
+   warning: guests will exit without a visit, and zero values are preserved.
+   This checks input weights/types only; eligibility and all choices stay in the
+   engine. Tests verify real safe exits and missing-type compatibility.
+5. Playback draws all amenities, uses distinct stage/amenity colors and labels,
+   and includes a text destination legend. Generic targets and all nine statuses
+   continue to come directly from frames. Null/missing targets and supplied
+   run-end positions remain safe; no event-to-frame reconstruction.
+6. “Assumptions used by this run” displays `result.settings`, including fully
+   resolved behavior returned by the engine. It never reads live controls or
+   presents requested partial settings as the engine's resolved configuration.
+   The validated input helper currently resolves behavior before execution too;
+   completed-run presentation still treats the result as authoritative.
+7. The SIM-02-era “prices/budgets/multi-stop/dwell not implemented” product copy
+   is replaced with accurate modeled-assumption language. The eight-vendor
+   example now contains a stage and all three amenity types. “Load behavior
+   example” loads it into the editor for price/attraction/dwell editing.
 
-## Implementation
+## Data flow and ownership
 
-- `src/features/editor/ComponentForm.tsx`, `layout.ts`: vendor price/service
-  creation, optional stage/amenity dwell creation, bounds/order validation;
-  initial vendor values come from the reviewed demo fixture, and new amenity
-  attraction comes from the reviewed multi-destination amenity fixture. Existing blank
-  layouts remain supported. New restroom, seating and first-aid components use
-  approved Festival amenities; parking/custom/exits remain annotations. Historical
-  editor annotations are not automatically converted into destinations.
-- `BehaviorAttributes.tsx`, `FestivalEditor.tsx`: explicit apply for vendor
-  assumptions and location overrides. Empty/invalid string drafts stay visible,
-  disable apply and leave committed layout values intact. Inheritance removes
-  the override property; the UI does not resolve dwell timing. Undo/switching
-  synchronizes the assumption editor with committed values.
-- `src/features/simulation-settings/BehaviorControls.tsx`: all approved numeric
-  behavior fields, including category weights, exit probability, remaining time,
-  bounded roam count and dwell endpoints. Defaults are read directly from
-  `DEFAULT_BEHAVIOR_SETTINGS`; public validation owns bounds and relationships.
-  Empty strings become invalid NaN for rejection, never valid zero. Shared
-  validation messages identify the invalid field/range and are associated with
-  controls. Values are not normalized.
-- `simulationInput.ts`: amenities retained, price/service/dwell bounds checked,
-  public behavior resolver/validator called before execution, resolved settings
-  deeply cloned. `executeRun` remains the only pipeline, with independent
-  festival/settings/result/warnings and retained prior success on rejection.
-- `MapCanvas.tsx`: approved amenities use existing map presentation/drag handling.
-- Playback generic targets/status styles already existed on merged main.
-  `presentation.ts` now honors explicit null generic targets instead of selecting
-  a legacy vendor target. Missing IDs are displayed as supplied IDs. No inferred
-  destination, behavior adapter, event reconstruction or canonical metric math.
+There is one run pipeline: `prepareSimulationInput(layout, settings)` followed
+by the public `runSimulation(input.festival, input.settings)` only when valid,
+via existing `executeRun`/`ActiveRun`. Successful runs retain independent
+festival/settings/result/warnings snapshots. Invalid reruns keep and identify
+previous successful playback. Presentation never reruns the engine.
 
-## Audited acceptance mapping
+Code references:
 
-Every handoff present at the baseline was read: HANDOFF, SIM-01-HANDOFF,
-SIM-02-UI-02-HANDOFF, SIM-02-ANA-01-HANDOFF,
-UI-02-ANA-01-UI-03-HANDOFF and the existing UI-04-HANDOFF. No separate
-CON-02, SIM-03 or ANA-03 handoff exists at this baseline. Historical claims and
-performance numbers are not current verification evidence.
+- `src/features/editor/layout.ts`, `ComponentForm.tsx`, `BehaviorAttributes.tsx`,
+  `FestivalEditor.tsx`, `simulationInput.ts`: editing and validated snapshots.
+- `src/features/simulation-settings/BehaviorControls.tsx`, `warnings.ts`,
+  `ResolvedAssumptions.tsx`: shared defaults/validation, input warning and
+  engine-returned assumption display.
+- `src/features/playback/PlaybackCanvas.tsx`, `PlaybackView.tsx`,
+  `PlaybackWorkspace.tsx`, `vendorDemo.ts`: map presentation and composition.
 
-“Complete” below refers to implementation plus named automated evidence;
-manual gaps are listed separately and remain pending.
+No domain, fixture, engine, analytics, dashboard, comparison, recommendation,
+package manifest or lockfile changes relative to fetched main. No new production
+libraries. Imports use only the public simulation entry point. No frontend
+choice, budget, dwell, queue, revenue, visit or other canonical metric formulas.
 
-| Source | Requirement | Implementation/evidence | Status |
+## Acceptance and source-by-source handoff audit
+
+Every handoff currently present was read. The checklist was originally recorded
+before UI-04 implementation in `29c65b1`; the matrix below revisits that checklist
+against merged SIM-03. Historical passing tests and FPS numbers are not new
+verification evidence. Complete means implementation plus current named evidence;
+manual gaps remain explicitly pending below.
+
+| Source | UI-04 requirement | Implementation and current evidence | Status |
 | --- | --- | --- | --- |
-| TASKS UI-04; HANDOFF A | Vendor price/service creation/editing, display units | ComponentForm/BehaviorAttributes; behavior.test creation and edited handoff; browser edited 23/15 then ran | complete |
-| TASKS UI-04; HANDOFF; ARCHITECTURE | Optional stage/amenity overrides, inherited absence, ordered endpoints | forms/layout/input; behavior.test override rejection and absent inheritance; browser stage 20–10 rejected, 20–30 applied | complete |
-| HANDOFF; domain/behavior | Shared defaults, every advanced field, stop/revisit/roam/exit settings | BehaviorControls/readBehavior; behavior.test default equality and every-field nondefault engine handoff | complete |
-| HANDOFF; INTEGRATION | Relative tendencies, accepted all-zero input, no frontend fallback | controls copy; zero-weight test and browser zero-intent run | complete for UI; engine fallback unverified |
-| HANDOFF; TASKS UI-04 | Empty, malformed, nonfinite, negative, integer/count/range limits | string drafts/public validator; behavior.test invalid weights, prices/service, range and caps tests; browser invalid 7 stops | complete |
-| HANDOFF; UI-02-ANA-01-UI-03-HANDOFF | Accessible errors, units and modeled-estimate copy | labels/descriptions/aria-invalid; default rendering tests; browser copy and Tab focus | complete; full keyboard audit pending |
-| SIM-01-HANDOFF | prepareSimulationInput then public runSimulation, never execute invalid input | simulationInput/executeRun; run.test and behavior.test engine spies | complete |
-| SIM-01-HANDOFF; UI-02-ANA-01-UI-03-HANDOFF | Deep independent snapshots; no mutation of defaults, editor or result | existing executeRun retained; run.test and behavior.test nested mutation checks | complete |
-| UI-02-ANA-01-UI-03-HANDOFF | Prior success retained/identified; warnings/errors/empty states preserved | PlaybackWorkspace unchanged run flow; run/rendering tests; browser rejected rerun note | complete |
-| SIM-01-HANDOFF | Blank drafting, gate validation, multiple/gate-only layouts, annotation exclusion | existing editor/input tests; new approved amenities retained; vendorDemo integration tests | complete |
-| SIM-01-HANDOFF; SIM-02-UI-02-HANDOFF | Meter positions, complete sparse frames, absent unspawned/exited identity, last recorded frame boundary | existing controller/animation/rendering and sim02.integration suites rerun | complete |
-| SIM-02-UI-02-HANDOFF; UI-02-ANA-01-UI-03-HANDOFF | Play/pause/restart/scrub/speed/background behavior | controller/animation/rendering suites rerun | complete |
-| SIM-02-UI-02-HANDOFF | Direct waiting queue/sales/inventory values; null unlimited vs zero stock | existing FrameDetails/vendorDisplay; rendering and sim02.integration tests | complete |
-| HANDOFF; CON-02 fields | Generic destination, dwelling, all nine statuses, null/missing IDs | presentation and genericTargets.test with reviewed multiDestination fixture | complete for contract presentation; real SIM-03 unverified |
-| HANDOFF; SIM-01-HANDOFF | Only approved destinations; no inference from gates/parking/paths/custom/exits | layout mapping; genericTargets test; diff inspection | complete |
-| SIM-02-ANA-01-HANDOFF; UI-02-ANA-01-UI-03-HANDOFF | Final result values stable during playback; no UI canonical calculations | existing result boundary retained; playback tests; no dashboard implementation exists in this baseline | complete for existing playback; dashboard task not applicable |
-| All handoffs; TESTING | Reviewed fixtures and real public engine result compatible | genericTargets/rendering/run/sim02.integration suites | complete for current engine |
-| TASKS UI-02; UI-02-ANA-01-UI-03-HANDOFF | Fresh 300-attendee/circle 30 FPS measurement | no new measurement; old number deliberately not reused | pending |
-| SIM-02-ANA-01-HANDOFF | Event reduction, conservation, inventory, canonical formulas | backend-owned suites only; no frontend duplication | not applicable: separate backend ownership |
-| HANDOFF B | Intent/choice/affordability/roam/dwell/queue behavior and typed exits | SIM-03 owns engine implementation | not applicable: UI-04 does not implement engine behavior |
-| HANDOFF; UI-02-ANA-01-UI-03-HANDOFF | ANA-03/UI-03/INT-01/recommendations/deploy | downstream tasks retain their dependency gates | not applicable: outside UI-04 |
+| TASKS UI-04; HANDOFF; SIM-03-UI-04 | Vendor price/service create/edit, display units | ComponentForm/BehaviorAttributes; behavior.test creation and engine handoff; browser edited 8/5 then real run | complete |
+| SIM-03-UI-04 | Canonical amenity initialization/create/edit/move/resize/delete/undo/clear/import/export | layout/input; amenities.test exercises all three types, geometry, retained undo state, JSON and missing-array import; browser type/attraction change applied | complete for implementation; exhaustive browser lifecycle audit pending |
+| HANDOFF; ARCHITECTURE; SIM-03-UI-04 | Stage/amenity attraction/type and dwell overrides/inheritance | ComponentForm/BehaviorAttributes; amenities/behavior tests for attraction/ranges/absence; browser 10–5 rejected, 10–15 applied then inheritance restored | complete |
+| HANDOFF; behavior.ts; SIM-03-UI-04 | Shared defaults, intent/destination/category weights, stop/revisit/roam/exit limits, dwell, queue tolerance and elasticity | controls; behavior.test default equality/every-field nondefault handoff; limits.test invalid cases for every numeric leaf | complete |
+| INTEGRATION; SIM-03-UI-04 | Zero eligible weights accepted unchanged with warning; missing types/no destinations safe | warnings/input; sim03.integration real exits, no visit events, zeros retained, missing types and empty layout; browser zero-weight run displays warning | complete |
+| HANDOFF; TASKS UI-04 | Empty/malformed/nonfinite/negative/range/integer validation and accessible feedback | string drafts/native creation errors/shared behavior validator; behavior/limits/amenities tests; browser invalid stop 7 retains prior result | complete; full manual keyboard audit pending |
+| SIM-03-UI-04 | Fully resolved completed assumptions from result.settings | ResolvedAssumptions; sim03.integration partial input/edit isolation/default display; browser resolved 6-stop/first-aid weight 1 displayed | complete |
+| SIM-01-HANDOFF; UI-02-ANA-01-UI-03-HANDOFF; SIM-03-UI-04 | Exact validated public-engine handoff, independent deep snapshots, no invalid execution | existing executeRun preserved; run/behavior/sim03.integration tests with real edited assumptions and subsequent mutation | complete |
+| UI-02-ANA-01-UI-03-HANDOFF | Warnings/errors/no-run states; rejected attempt retains identified success | existing workspace/RunMessages; run/rendering tests and current browser rejected rerun | complete |
+| SIM-01-HANDOFF | Blank draft; gate validation, multiple/gate-only layouts; annotations excluded | existing editor/input/vendorDemo integration suites rerun | complete |
+| SIM-01-HANDOFF; SIM-02-UI-02-HANDOFF | World meters, complete sparse frames, absent unspawned/exited identity; last-frame boundary | unchanged controller/animation/AttendeeMarks semantics; controller/animation/rendering/sim02 integration tests rerun; browser first/final/midpoint scrub | complete |
+| SIM-02-UI-02-HANDOFF; UI-02-ANA-01-UI-03-HANDOFF | Play/pause/restart/scrub/speed/background behavior | controller/animation/rendering suites rerun; browser pause/End/PageDown | complete |
+| SIM-02-UI-02-HANDOFF | Waiting excludes service; purchases not revenue; null unlimited/zero stock | direct vendorDisplay/FrameDetails values; existing rendering/ledger reconciliation suites; browser counts/stockout/unlimited rows | complete |
+| HANDOFF; CON-02; SIM-03-UI-04 | Generic targets, dwelling/roaming/all nine statuses, null/stale targets, accessible target names | presentation/FrameDetails; genericTargets fixture tests plus real sim03 integration frames for every destination type; browser guest target accessible | complete |
+| SIM-03-UI-04 | Draw amenities distinctly, absent/empty arrays safe, final positions supplied by engine | AmenityMarks/AttendeeMarks and text legend; sim03.integration drawing checks, existing supplied-position test; browser map inspection | complete |
+| HANDOFF; UI-02-ANA-01-UI-03-HANDOFF; SIM-03-UI-04 | Accurate modeled assumptions, never forecasts | workspace/settings/result copy; rendering assertions and current desktop/narrow inspection | complete |
+| All handoffs; TESTING; SIM-03-UI-04 | Reviewed fixtures plus real stage/two-vendor/all-three-amenity run; determinism and compatibility | sim03.integration uses eight-vendor example, 250 attendees, edited UI-parsed settings and override snapshots; repeat equality; full backend invariant suites | complete |
+| SIM-02-ANA-01-HANDOFF; UI-02-ANA-01-UI-03-HANDOFF | Final metrics not recalculated while scrubbing | unchanged result boundary; playback immutability tests; no dashboard exists at this base | complete for playback; dashboard outside UI-04 |
+| TASKS UI-02; SIM-03-UI-04; TESTING | Fresh 300-attendee browser check/30 FPS target | current 300-guest/600-second run and scrub smoke pass; timing API unavailable | smoke complete; FPS unverified |
+| SIM-02-ANA-01-HANDOFF; HANDOFF B | Queue/inventory/budget/event/metric formulas and simulation behavior | owning backend suites rerun; no UI reducers | not applicable to implementation: backend ownership |
+| SIM-03-UI-04; TASKS ANA-03/UI-03/INT-01 | Destination summaries, dashboard, fair comparison/recommendations/deploy | separate tasks; returned destinationMetrics/destinationTransitions remain empty until ANA-03 | not applicable: outside UI-04 |
 
-## Verification
+## Superseded historical statements
 
-Commands executed on this change:
+- Old UI-04 gate requiring proof of past joint approval is superseded by the
+  explicit merged-CON-02 baseline authorization; approval evidence remains
+  accurately described above.
+- Three-stop prose is superseded by current behavior.ts/ARCHITECTURE/TASKS:
+  overall default four, configurable one through six, per-type caps and revisits.
+- Old HANDOFF/UI-02/editor/playback README descriptions of SIM-02-only behavior,
+  six statuses, missing generic events and “SIM-03 not implemented” are historical.
+  Merged SIM-03 and `docs/SIM-03-UI-04-HANDOFF.md` govern current integration.
+- The new SIM-03 handoff's description that UI snapshotting still omits amenities
+  described its pre-integration UI baseline; current UI-04 already retains them.
+- Old all-zero fallback uncertainty is superseded for eligible destination weights
+  by SIM-03's typed no_eligible_destination fallback. No frontend fallback added.
 
-- Focused editor/settings/playback: 56 tests pass.
-- `npm test -- src/features/playback src/simulation`: 55 tests pass.
-- `npm run verify`: passes lint, strict typecheck, all 115 tests (17 files), and production build after the final implementation edit.
+## Current verification
 
-New tests cover parsed defaults, every-field nondefault settings handoff,
-zero weights, rejected numeric/range/count input, vendor creation, price/service
-handoff, nested snapshot isolation, inheritance, invalid overrides, amenity
-geometry/deletion, reviewed generic frames/statuses/null/missing targets.
-Existing suites cover playback boundaries, controls, warnings and real engine
-results. Backend invariants remain in their owning suites.
+After the final implementation edit:
 
-## Manual checks and limitations
+- Focused editor/settings/playback: **97 tests pass**.
+- `npm test -- src/features/playback src/simulation`: **78 tests pass**.
+- `npm run verify`: lint, strict TypeScript, **175 tests in 22 files**, and
+  production build pass. Includes SIM-03 determinism, stream independence,
+  queue conservation, inventory/budget and event/ANA-01 metric agreement suites.
+- `git diff --check` passes; ownership/import/metric audit found no material
+  cross-layer violation. Public contracts, shared fixtures and dependencies are
+  unchanged relative to merged main.
 
-2026-11-14, local Next development server, macOS Darwin arm64, ChatGPT in-app
-browser (browser version and exact hardware model not exposed by this session).
+New adjacent tests: `editor/amenities.test.ts`,
+`simulation-settings/limits.test.ts`, `playback/sim03.integration.test.ts`.
+Existing editor/settings/playback/simulation/analytics tests remain green.
+Backend correctness assertions stay in owning suites; new frontend integration
+checks verify the boundary and rendering, not reimplement business formulas.
 
-- Complete: reviewed example loaded; vendor selected; price 23/service 15
-  applied; real public engine run renders playback.
-- Complete: invalid overall stop limit 7 displays shared error and preserves
-  previous successful playback with explicit previous-run label.
-- Complete: stage inheritance displayed; empty override endpoints show errors;
-  20–10 ordering rejected; 20–30 applied.
-- Complete: all four intent weights set to zero and a run accepted. This proves
-  acceptance/rendering only, not the absent SIM-03 fallback implementation.
-- Complete: modeled-assumption copy visible; desktop advanced grid visually
-  inspected; keyboard Tab advances from overall to vendor stop control.
-- Pending/unverified: full keyboard audit, vendor creation browser flow,
-  amenity override/inheritance browser flow, all-zero eligible destination
-  browser case and missing-type browser case. Automated input/integration
-  coverage exists, but these manual flows were not completed in this session.
-- Pending/unverified: narrow/mobile viewport was not exercised; only the
-  current desktop in-app viewport was inspected. Responsive grid uses auto-fit,
-  but CSS inspection is not a mobile browser verification claim.
-- Pending/unverified: fresh 300-circle performance measurement. Method not
-  performed; measured FPS unknown. Browser automation here supplied UI/DOM
-  observations, not a timed rendering trace. No old FPS number reused.
-- Unverified: real engine generic dwelling/price elasticity integration,
-  because SIM-03 is not merged. The reviewed fixture verifies presentation.
+## Manual browser evidence and remaining limits
 
-## Downstream and diff audit
+2026-11-14, local development server, macOS Darwin arm64, ChatGPT in-app browser.
+Browser version/exact hardware model were not exposed. Existing local dev server
+was reused; a duplicate dev-server attempt exited without replacing it.
 
-Domain, fixtures, simulation, analytics, dashboard, comparison, recommendation,
-package manifests and lockfiles are unchanged. No production dependency added.
-No canonical metrics or simulation decisions are calculated in UI. Browser
-elapsed time still moves only the playback cursor. Generic target fallback
-uses only the frame contract; the UI never chooses a replacement destination.
+Verified in this integration session:
 
-UI-04 implementation is ready for draft review with the pending manual checks
-above. SIM-03 behavior, ANA-03 analytics, INT-01 fair comparisons and release
-readiness require their own work and verification. Do not merge while required
-manual/performance checks remain unverified.
+- Load behavior example: eight vendors, stage, seating, restroom and first aid.
+- Change amenity type to seating and attraction to 0.8; apply and see its type
+  reflected in the component list; restore restroom type.
+- Empty dwell override shows field errors; 10–5 disables apply; 10–15 applies;
+  unchecking override restores inheritance.
+- Vendor price 8/service time 5 applied, then 300 guests/10 minutes/6 stops and
+  first-aid weight 1 run successfully through merged SIM-03.
+- Playback map visually shows differently colored amenity rectangles and stage,
+  attendee positions and vendor stock badges; accessible guest detail shows
+  engine target name. First, 360-second and final 600-second frames scrub safely.
+- Resolved assumptions show saved 300 guests/600 seconds/6 stops and first-aid
+  weight 1. An invalid new stop limit 7 preserves this run and labels it previous.
+- All five destination-type weights zero: successful run with visible warning,
+  no frontend substitution. Restored nonzero weights and ran again for preview.
+- 390×844 viewport: document width 390, viewport width 390; no horizontal
+  overflow. Settings/errors visually inspected; desktop viewport reset afterward.
+- Browser error log query returned no errors during these checks.
+
+Still unverified: exhaustive keyboard audit, browser vendor-creation flow,
+stage-attraction creation/edit browser flow, complete browser amenity
+move/resize/delete/undo/export cycle, and missing-type browser flow. Automated
+coverage exists for related lifecycle/handoff cases; it is not a claim these
+manual flows were completed.
+
+Performance: fresh 300-guest playback smoke completed (300 frame identities at
+final frame); **measured FPS unknown**. An attempted 121-sample animation-frame
+cadence check failed because the browser tool's read-only evaluation scope does
+not provide requestAnimationFrame (`TypeError: requestAnimationFrame is not a
+function`). No valid rendering trace was collected; no 30 FPS claim and no old
+number reused. A real browser performance trace remains a pre-merge check.
+
+## What now works and next steps
+
+The integrated app edits festival destinations/prices/service/dwell/behavior,
+runs seeded price- and budget-sensitive bounded multi-stop visits, and plays
+engine-supplied stage/vendor/roam/amenity/queue/service/dwell/exit states. The engine
+returns event-derived vendor business metrics and a canonical destination ledger.
+Outputs are modeled estimates, not forecasts or observed human behavior.
+
+Important behavior distinction: SIM-03 queue patience timeout exits the festival
+with queue_tolerance_exceeded; it does not automatically switch to another stand.
+Stockout removal/admission rejection can return to the bounded next-choice flow.
+A different timeout-to-another-stand policy would be separate simulation work.
+
+Next: complete remaining manual/FPS checks and review UI-04; implement ANA-03
+visit/dwell/transition metrics from events; UI-03 displays final vendor/destination
+metrics; INT-01 compares compatible scenarios with common attendee assumptions;
+then recommendations and release/demo hardening. UI must not fill empty
+ANA-03 arrays with inferred frame-derived summaries.

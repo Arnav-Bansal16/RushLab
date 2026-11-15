@@ -66,6 +66,7 @@ export function createBlankLayout(): LayoutDocument {
     boundsMeters: { width: 120, height: 80 },
     entrances: [],
     stages: [],
+    amenities: [],
     vendors: [],
     paths: [],
     obstacles: [],
@@ -160,6 +161,7 @@ export interface NewComponent {
   category: VendorCategory;
   servers: number;
   dwellDurationOverrideSeconds?: import("../../domain").DwellDurationRange;
+  attraction?: number;
   averagePrice?: number;
   serviceTimeSeconds?: number;
 }
@@ -193,6 +195,11 @@ export function addComponent(
         demoFestival.vendors[0].serviceTimeSeconds) > 3600)
   )
     throw new Error("Invalid vendor price or service time.");
+  if (
+    details.attraction !== undefined &&
+    (!Number.isFinite(details.attraction) || details.attraction < 0)
+  )
+    throw new Error("Attraction must be finite and non-negative.");
   const range = details.dwellDurationOverrideSeconds;
   if (
     range &&
@@ -250,7 +257,7 @@ export function addComponent(
         name,
         position,
         size,
-        attraction: 0.9,
+        attraction: details.attraction ?? demoFestival.stages[0].attraction,
         ...(range
           ? { dwellDurationOverrideSeconds: structuredClone(range) }
           : {}),
@@ -286,7 +293,9 @@ export function addComponent(
         type: details.kind,
         position,
         size,
-        attraction: multiDestinationFestival.amenities[0].attraction,
+        attraction:
+          details.attraction ??
+          multiDestinationFestival.amenities[0].attraction,
         ...(range
           ? { dwellDurationOverrideSeconds: structuredClone(range) }
           : {}),
