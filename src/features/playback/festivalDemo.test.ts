@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { createFestivalDemo, festivalDemoSettings } from "./vendorDemo";
 import { executeRun } from "./run";
-import { attendeeStyle, betweenStopsStyle, statusStyles } from "./presentation";
+import { attendeeStyle, angryStyle, statusStyles } from "./presentation";
 it("keeps the demo busy inside the festival, with real waiting and a canonical bathroom/exit", () => {
   const layout = createFestivalDemo();
   expect(festivalDemoSettings.durationSeconds).toBe(600);
@@ -32,10 +32,10 @@ it("keeps the demo busy inside the festival, with real waiting and a canonical b
   expect(exited / spawned).toBeLessThan(0.1);
   const frame = first.run.result.frames.find((f) => f.timeSeconds === 150)!;
   for (const a of frame.attendees) {
-    expect(attendeeStyle(a)).toEqual(
-      a.status === "walking" && (a.completedStops ?? 0) > 0
-        ? betweenStopsStyle
-        : statusStyles[a.status],
+    expect(attendeeStyle(a).color).toBe(
+      a.queueFrustration && a.status !== "leaving" && a.status !== "exited"
+        ? angryStyle.color
+        : statusStyles[a.status].color,
     );
   }
 });

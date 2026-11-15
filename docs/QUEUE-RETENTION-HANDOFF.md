@@ -65,3 +65,20 @@ claimed without a successful API response.
 
 Final verification: npm run verify passes lint, strict types, all 179 tests
 in 24 files and production build. Shared fixtures and dependencies unchanged.
+
+## Simplified presentation update
+
+The visible legend groups entering/choosing/walking/roaming/next-stop travel
+under one blue Walking category. Queued stays amber. Service and dwelling no
+longer appear as separate legend categories; those stationary guests use neutral
+gray while engine states remain intact for inspection. Red frustration, magenta
+leaving and faded exited identity are preserved. Frustrated now counts the red
+markers in the selected frame only; this is a visual playback count, not a
+canonical cumulative unique-customer metric.
+
+Stall statistics use shorter headers, shared consistent two-decimal currency
+formatting, grouped counts and right-aligned tabular numbers. Actual revenue
+and modeled missed-sale value remain separate full-run engine values. Browser
+inspection at 360 seconds showed six frustrated guests and the cleaned table.
+Verification: npm run verify passes lint, types, 180 tests and production build.
+No simulation or shared-contract changes in this presentation update.

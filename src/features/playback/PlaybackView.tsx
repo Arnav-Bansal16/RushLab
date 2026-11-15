@@ -9,6 +9,7 @@ import {
   playbackReducer,
   type PlaybackAction,
 } from "./controller";
+import { attendeeStyle, angryStyle, formatCurrencyUnits } from "./presentation";
 import ResolvedAssumptions from "../simulation-settings/ResolvedAssumptions";
 import { FrameDetails, StatusLegend } from "./FrameDetails";
 import { startPlaybackAnimation } from "./animation";
@@ -205,24 +206,47 @@ export default function PlaybackView({
         disabled={!frames.length}
         onAction={dispatch}
       />
-      <section aria-labelledby="stall-revenue-heading">
-        <h3 id="stall-revenue-heading">Money made by each stall · full run</h3>
-        <p>
-          Modeled revenue in display currency units, returned by the engine for
-          the full {result.settings.durationSeconds / 60}-minute run. These
-          final totals stay fixed while playback plays or scrubs; they are
-          revenue, not profit or a forecast.
+      <div className="frustration-counter" role="status">
+        <span>Frustrated now</span>
+        <strong>
+          {frame?.attendees.filter(
+            (person) => attendeeStyle(person) === angryStyle,
+          ).length ?? 0}
+        </strong>
+        <small>Guests shown in red at the selected playback moment</small>
+      </div>
+      <StatusLegend />
+      <p className="playback-color-note">
+        Blue groups all walking and movement states. Guests at a stop use
+        neutral gray; queued guests remain amber. Red marks recent queue
+        frustration.
+      </p>
+      <section
+        className="stall-statistics"
+        aria-labelledby="stall-revenue-heading"
+      >
+        <h3 id="stall-revenue-heading">Stall performance · full run</h3>
+        <p className="statistics-context">
+          Final {result.settings.durationSeconds / 60}-minute results · amounts
+          in display currency units. Totals stay fixed while playback plays or
+          scrubs.
         </p>
         {result.vendorMetrics.length ? (
           <div className="vendor-table-wrap">
-            <table>
+            <table className="statistics-table">
               <caption>Final stall revenue · full run</caption>
               <thead>
                 <tr>
                   <th scope="col">Stall</th>
-                  <th scope="col">Revenue (display currency units)</th>
-                  <th scope="col">Missed sales (count)</th>
-                  <th scope="col">Modeled missed sales (currency units)</th>
+                  <th scope="col" className="numeric">
+                    Revenue
+                  </th>
+                  <th scope="col" className="numeric">
+                    Missed sales
+                  </th>
+                  <th scope="col" className="numeric">
+                    Missed-sale value
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -233,14 +257,15 @@ export default function PlaybackView({
                         (vendor) => vendor.id === metric.vendorId,
                       )?.name ?? metric.vendorId}
                     </th>
-                    <td>
-                      {metric.revenue.toLocaleString("en-US", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
+                    <td className="numeric revenue-value">
+                      {formatCurrencyUnits(metric.revenue)}
                     </td>
-                    <td>{metric.missedSales?.count ?? 0}</td>
-                    <td>{(metric.missedSales?.value ?? 0).toFixed(2)}</td>
+                    <td className="numeric">
+                      {(metric.missedSales?.count ?? 0).toLocaleString("en-US")}
+                    </td>
+                    <td className="numeric missed-value">
+                      {formatCurrencyUnits(metric.missedSales?.value ?? 0)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -250,7 +275,9 @@ export default function PlaybackView({
           <p>No stall revenue results in this run.</p>
         )}
       </section>
-      <p>
+      <p className="statistics-explanation">
+        Revenue is money from completed purchases, not profit or a forecast.
+        Missed sales count long-wait abandonments and full-queue rejections.
         Each long-wait abandonment or full-queue rejection is valued at that
         stall’s average price. They are potential stall sales, not actual lost
         festival revenue: a guest may buy elsewhere. Red guests are modeled as
@@ -272,13 +299,13 @@ export default function PlaybackView({
                     {event.reason === "queue_full"
                       ? "Queue full"
                       : "Wait too long"}{" "}
-                    · missed sale {event.missedSaleValue} currency units
+                    · missed sale {formatCurrencyUnits(event.missedSaleValue)}{" "}
+                    currency units
                   </li>
                 ),
             )}
         </ul>
       </details>
-      <StatusLegend />
       <ul aria-label="Map destination legend" className="status-legend">
         {festival.stages.map((item) => (
           <li key={item.id}>{item.name} · stage (dark green)</li>

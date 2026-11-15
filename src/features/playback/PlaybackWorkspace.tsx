@@ -189,15 +189,17 @@ export default function PlaybackWorkspace({
             <div className="demo-context" role="note">
               <strong>Watching the 8-vendor example</strong>
               <p>
-                Guests moving between stops are orange; queues are amber,
-                service is green, and guests leaving the festival are magenta.
-                Gray faded guests have exited. The table follows the same
+                All walking and movement is blue; queues are amber, and guests
+                leaving the festival are magenta. Guests at a stop use neutral
+                gray. Gray faded guests have exited. The table follows the same
                 recorded moment. Guests can also roam and dwell at the stage,
                 seating, restrooms and first aid. The engine calculates choices,
                 visits, queues, purchases and stockouts from illustrative
-                assumptions. Red guests have left a long or full queue and can choose another stop. Queue capacity is eight waiting guests per stall. The marked entrance/exit is the engine’s actual
-                departure point. Longer visits reduce early exits; the recording
-                still ends after ten minutes.
+                assumptions. Red guests have left a long or full queue and can
+                choose another stop. Queue capacity is eight waiting guests per
+                stall. The marked entrance/exit is the engine’s actual departure
+                point. Longer visits reduce early exits; the recording still
+                ends after ten minutes.
               </p>
             </div>
           )}

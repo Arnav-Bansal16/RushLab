@@ -1,7 +1,11 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import type { AttendeeStatus, SimulationFrame, SimulationResult } from "../../domain";
+import type {
+  AttendeeStatus,
+  SimulationFrame,
+  SimulationResult,
+} from "../../domain";
 import { demoFestival } from "../../fixtures/demoFestival";
 import { demoSimulationResult } from "../../fixtures/demoSimulationResult";
 import { fitViewport } from "../editor/geometry";
@@ -25,7 +29,7 @@ vi.mock("react-konva", () => ({
 import PlaybackView, { PlaybackControls, RunMessages } from "./PlaybackView";
 import { AttendeeMarks } from "./PlaybackCanvas";
 import { FrameDetails, StatusLegend } from "./FrameDetails";
-import { statusStyles } from "./presentation";
+import { statusStyles, attendeeStyle } from "./presentation";
 import PlaybackWorkspace from "./PlaybackWorkspace";
 import { createBlankLayout } from "../editor/layout";
 
@@ -321,4 +325,60 @@ it("shows full queues, supplied missed-sale values and the reason for each frust
     ),
   );
   expect(marks).toContain("#e12828");
+});
+
+it("uses one walking category, preserves queued color and shows the current red-guest count", () => {
+  const legend = renderToStaticMarkup(createElement(StatusLegend));
+  for (const label of [
+    "Entering",
+    "Choosing",
+    "Roaming",
+    "Moving to next stop",
+    "In service",
+    "Dwelling",
+  ])
+    expect(legend).not.toContain(label);
+  expect(legend).toContain("Walking");
+  expect(legend).toContain("Queued");
+  expect(legend).toContain("Frustrated");
+  for (const status of [
+    "entering",
+    "choosing",
+    "walking",
+    "roaming",
+  ] as const) {
+    const person = {
+      id: "guest",
+      status,
+      position: { x: 1, y: 1 },
+      targetVendorId: null,
+      completedStops: 2,
+    };
+    expect(attendeeStyle(person)).toEqual({
+      label: "Walking",
+      color: "#286baf",
+      opacity: 1,
+    });
+  }
+  expect(
+    attendeeStyle({
+      id: "waiting",
+      status: "queued",
+      position: { x: 1, y: 1 },
+      targetVendorId: null,
+    }).color,
+  ).toBe("#a56b09");
+  const result: SimulationResult = structuredClone(demoSimulationResult);
+  result.frames[0].attendees[0].queueFrustration = {
+    vendorId: demoFestival.vendors[0].id,
+    reason: "wait_too_long",
+    timeSeconds: 0,
+    missedSaleValue: 12,
+  };
+  const html = renderToStaticMarkup(
+    createElement(PlaybackView, { festival: demoFestival, result }),
+  );
+  expect(html).toContain("Frustrated now</span><strong>1</strong>");
+  expect(html).toContain("numeric revenue-value");
+  expect(html).toContain("Missed-sale value");
 });

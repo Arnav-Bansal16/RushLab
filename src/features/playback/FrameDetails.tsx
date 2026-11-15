@@ -12,8 +12,10 @@ export function StatusLegend() {
   return (
     <ul className="status-legend" aria-label="Attendee status legend">
       {Object.entries({
-        ...statusStyles,
-        between_stops: betweenStopsStyle,
+        walking: betweenStopsStyle,
+        queued: statusStyles.queued,
+        leaving: statusStyles.leaving,
+        exited: statusStyles.exited,
         angry: angryStyle,
       }).map(([key, style]) => (
         <li key={key}>
