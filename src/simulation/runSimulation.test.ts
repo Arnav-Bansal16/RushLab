@@ -97,7 +97,9 @@ describe("runSimulation", () => {
       );
 
       expect(attendee.position).toEqual(entrance?.position);
-      expect(attendee.status).toBe("entering");
+      expect(attendee.status).toBe(
+        event.timeSeconds === settings.durationSeconds ? "exited" : "entering",
+      );
       checkedSpawnFrames += 1;
     }
 
