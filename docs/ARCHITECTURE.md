@@ -247,7 +247,7 @@ roaming, queueing, purchasing, dwelling, leaving, and exited state for playback.
 
 An attendee exits when the itinerary limit is reached, no eligible destination
 remains, remaining time is insufficient, budget blocks another desired
-purchase, queue tolerance is exceeded, the deterministic seeded post-stop exit
+purchase, the deterministic seeded post-stop exit
 decision succeeds, or the run ends. Exit decisions are seeded and bounded;
 there is no recursive itinerary construction or endless free roaming.
 
@@ -288,3 +288,18 @@ new `SimulationResult` snapshots the fully resolved settings.
 ## Optional services
 
 P1 LLM explanations receive a compact structured comparison and recommendations; they never calculate metrics or control agents. P2 Supabase stores versioned festival/result documents and requires RLS. Both require a separate architecture approval.
+
+## Draft queue-retention extension (joint review required)
+
+On `codex/queue-abandonment-retention`, exceeding queue patience or rejection
+from a full waiting queue ends that stall visit and returns the attendee to
+bounded destination selection, rather than directly exiting the festival.
+Normal time, budget, eligibility and itinerary limits still apply.
+Engine-produced `queueFrustration` lasts 15 simulated seconds; red is a modeled
+frustration cue, not an observed emotional state. A `missed_sale` event records
+one opportunity at the rejected stall's average price, per the user's selected
+demo assumption. Analytics sums these into optional per-vendor `missedSales`.
+These opportunities do not reduce purchase revenue, attendee budget or stock,
+and are not losses of actual festival revenue. Stockout removals and ordinary
+festival exits are not assigned invented missed purchases. Shared contract
+changes require both developers' review under AGENTS.md before merge.

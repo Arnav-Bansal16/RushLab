@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import type { AttendeeStatus, SimulationFrame } from "../../domain";
+import type { AttendeeStatus, SimulationFrame, SimulationResult } from "../../domain";
 import { demoFestival } from "../../fixtures/demoFestival";
 import { demoSimulationResult } from "../../fixtures/demoSimulationResult";
 import { fitViewport } from "../editor/geometry";
@@ -238,7 +238,7 @@ it("updates vendor values and their timestamp from consecutive playback frames",
 });
 
 it("shows final engine revenue unchanged by the initial playback frame", () => {
-  const result = structuredClone(demoSimulationResult);
+  const result: SimulationResult = structuredClone(demoSimulationResult);
   result.vendorMetrics[0].revenue = 1234.56;
   result.frames[0].vendors[0].cumulativeSales = 0;
   const html = renderToStaticMarkup(
@@ -248,4 +248,77 @@ it("shows final engine revenue unchanged by the initial playback frame", () => {
   expect(html).toContain("Final stall revenue");
   expect(html).toContain("not profit or a forecast");
   expect(result.frames[0].vendors[0].cumulativeSales).toBe(0);
+});
+
+it("shows full queues, supplied missed-sale values and the reason for each frustrated guest", () => {
+  const result: SimulationResult = structuredClone(demoSimulationResult);
+  const vendor = result.vendorMetrics[0];
+  vendor.missedSales = { count: 1, value: 17 };
+  result.events.push({
+    type: "missed_sale",
+    attendeeId: "angry-guest",
+    vendorId: vendor.vendorId,
+    timeSeconds: 5,
+    reason: "wait_too_long",
+    missedSaleValue: 17,
+  });
+  const html = renderToStaticMarkup(
+    createElement(PlaybackView, { festival: demoFestival, result }),
+  );
+  expect(html).toContain("17.00");
+  expect(html).toContain("angry-guest");
+  expect(html).toContain("Wait too long");
+  const frustration = {
+    vendorId: vendor.vendorId,
+    timeSeconds: 5,
+    reason: "wait_too_long" as const,
+    missedSaleValue: 17,
+  };
+  const frame: SimulationFrame = {
+    timeSeconds: 6,
+    attendees: [
+      {
+        id: "angry-guest",
+        status: "walking",
+        position: { x: 10, y: 10 },
+        targetVendorId: null,
+        target: null,
+        queueFrustration: frustration,
+      },
+    ],
+    vendors: [
+      {
+        vendorId: vendor.vendorId,
+        queueLength: 8,
+        queueFull: true,
+        inventoryRemaining: null,
+        cumulativeSales: 0,
+      },
+    ],
+  };
+  const details = renderToStaticMarkup(
+    createElement(FrameDetails, {
+      festival: demoFestival,
+      frame,
+      inspectedId: "angry-guest",
+      onInspect: () => {},
+    }),
+  );
+  expect(details).toContain("Queue full");
+  expect(details).toContain("Frustrated");
+  expect(details).toContain("wait too long");
+  const marks = renderToStaticMarkup(
+    createElement(
+      "svg",
+      null,
+      createElement(AttendeeMarks, {
+        frame,
+        transform: fitViewport(demoFestival.boundsMeters, {
+          width: 800,
+          height: 500,
+        }),
+      }),
+    ),
+  );
+  expect(marks).toContain("#e12828");
 });

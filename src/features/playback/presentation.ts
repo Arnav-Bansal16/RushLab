@@ -24,7 +24,18 @@ export const betweenStopsStyle = {
   color: "#d26917",
   opacity: 1,
 };
+export const angryStyle = {
+  label: "Frustrated · left queue",
+  color: "#e12828",
+  opacity: 1,
+};
 export function attendeeStyle(attendee: AttendeeFrameState) {
+  if (
+    attendee.queueFrustration &&
+    attendee.status !== "exited" &&
+    attendee.status !== "leaving"
+  )
+    return angryStyle;
   return attendee.status === "walking" && (attendee.completedStops ?? 0) > 0
     ? betweenStopsStyle
     : statusStyles[attendee.status];
@@ -51,7 +62,7 @@ export function attendeeDescription(
       : (festival.vendors.find(
           (vendor) => vendor.id === attendee.targetVendorId,
         )?.name ?? attendee.targetVendorId);
-  return `${attendee.id} · ${attendeeStyle(attendee).label} · ${target}`;
+  return `${attendee.id} · ${attendeeStyle(attendee).label} · ${target}${attendee.queueFrustration ? ` · Left ${festival.vendors.find((v) => v.id === attendee.queueFrustration!.vendorId)?.name ?? attendee.queueFrustration.vendorId}: ${attendee.queueFrustration.reason === "queue_full" ? "queue full" : "wait too long"} · modeled missed sale ${attendee.queueFrustration.missedSaleValue} currency units` : ""}`;
 }
 export function vendorDisplay(state: VendorFrameState) {
   return {

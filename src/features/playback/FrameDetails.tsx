@@ -4,6 +4,7 @@ import {
   attendeeDescription,
   statusStyles,
   betweenStopsStyle,
+  angryStyle,
   vendorDisplay,
 } from "./presentation";
 
@@ -13,6 +14,7 @@ export function StatusLegend() {
       {Object.entries({
         ...statusStyles,
         between_stops: betweenStopsStyle,
+        angry: angryStyle,
       }).map(([key, style]) => (
         <li key={key}>
           <svg
@@ -96,7 +98,10 @@ export function FrameDetails({
                       {festival.vendors.find((v) => v.id === state.vendorId)
                         ?.name ?? state.vendorId}
                     </th>
-                    <td>{value.queue}</td>
+                    <td>
+                      {value.queue}
+                      {state.queueFull && <strong> · Queue full</strong>}
+                    </td>
                     <td>
                       {value.inventory}
                       {state.inventoryRemaining === 0 && (

@@ -6,6 +6,7 @@ const EVENT_PRIORITY: Record<SimulationEvent["type"], number> = {
   purchase: 2,
   stockout: 3,
   queue_abandon: 4,
+  missed_sale: 4,
   queue_join: 5,
   service_start: 6,
   destination_visit_end: 7,

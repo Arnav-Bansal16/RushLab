@@ -229,7 +229,7 @@ function PlaybackCanvas({
                     text={
                       state.inventoryRemaining === 0
                         ? "Out of stock"
-                        : `${state.queueLength} waiting`
+                        : `${state.queueLength} waiting${state.queueFull ? " · FULL" : ""}`
                     }
                     x={-25}
                     y={item.size.height * s + 5}

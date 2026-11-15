@@ -13,6 +13,7 @@ type DerivedSimulationMetrics = Pick<
 >;
 
 interface MutableVendorMetrics {
+  missedSales?: { count: number; value: number };
   vendorId: Id;
   visits: number;
   queueJoins: number;
@@ -158,6 +159,17 @@ export function deriveSimulationMetrics(
     }
 
     switch (event.type) {
+      case "missed_sale": {
+        const metrics = vendorState(event.vendorId);
+        invariant(
+          Number.isFinite(event.missedSaleValue) && event.missedSaleValue >= 0,
+          "invalid missed-sale value",
+        );
+        const missed = (metrics.missedSales ??= { count: 0, value: 0 });
+        missed.count += 1;
+        missed.value += event.missedSaleValue;
+        break;
+      }
       case "spawn":
         break;
 
@@ -315,6 +327,9 @@ export function deriveSimulationMetrics(
 
     return {
       vendorId: metrics.vendorId,
+      ...(metrics.missedSales
+        ? { missedSales: { ...metrics.missedSales } }
+        : {}),
       visits: metrics.visits,
       queueJoins: metrics.queueJoins,
       purchases: metrics.purchases,

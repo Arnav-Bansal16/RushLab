@@ -162,7 +162,7 @@ export default function PlaybackWorkspace({
           <p>
             8 vendors · a stage · bathroom, seating and first aid · a marked
             exit · 300 guests · a 10-minute stay-and-explore preview. Longer
-            dwell, patient queues and no random post-stop exits keep visits
+            dwell, finite queues and no random post-stop exits keep visits
             inside the festival. Your editor layout stays unchanged.
           </p>
         </div>
@@ -195,7 +195,7 @@ export default function PlaybackWorkspace({
                 recorded moment. Guests can also roam and dwell at the stage,
                 seating, restrooms and first aid. The engine calculates choices,
                 visits, queues, purchases and stockouts from illustrative
-                assumptions. The marked entrance/exit is the engine’s actual
+                assumptions. Red guests have left a long or full queue and can choose another stop. Queue capacity is eight waiting guests per stall. The marked entrance/exit is the engine’s actual
                 departure point. Longer visits reduce early exits; the recording
                 still ends after ten minutes.
               </p>

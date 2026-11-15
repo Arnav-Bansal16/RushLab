@@ -221,6 +221,8 @@ export default function PlaybackView({
                 <tr>
                   <th scope="col">Stall</th>
                   <th scope="col">Revenue (display currency units)</th>
+                  <th scope="col">Missed sales (count)</th>
+                  <th scope="col">Modeled missed sales (currency units)</th>
                 </tr>
               </thead>
               <tbody>
@@ -237,6 +239,8 @@ export default function PlaybackView({
                         maximumFractionDigits: 2,
                       })}
                     </td>
+                    <td>{metric.missedSales?.count ?? 0}</td>
+                    <td>{(metric.missedSales?.value ?? 0).toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -246,6 +250,34 @@ export default function PlaybackView({
           <p>No stall revenue results in this run.</p>
         )}
       </section>
+      <p>
+        Each long-wait abandonment or full-queue rejection is valued at that
+        stall’s average price. They are potential stall sales, not actual lost
+        festival revenue: a guest may buy elsewhere. Red guests are modeled as
+        frustrated for 15 simulated seconds after leaving a long or full queue.
+      </p>
+      <details>
+        <summary>Every missed sale · full-run ledger</summary>
+        <ul>
+          {result.events
+            .filter((event) => event.type === "missed_sale")
+            .map(
+              (event, index) =>
+                event.type === "missed_sale" && (
+                  <li key={index}>
+                    {event.timeSeconds}s · {event.attendeeId} ·{" "}
+                    {festival.vendors.find((v) => v.id === event.vendorId)
+                      ?.name ?? event.vendorId}{" "}
+                    ·{" "}
+                    {event.reason === "queue_full"
+                      ? "Queue full"
+                      : "Wait too long"}{" "}
+                    · missed sale {event.missedSaleValue} currency units
+                  </li>
+                ),
+            )}
+        </ul>
+      </details>
       <StatusLegend />
       <ul aria-label="Map destination legend" className="status-legend">
         {festival.stages.map((item) => (

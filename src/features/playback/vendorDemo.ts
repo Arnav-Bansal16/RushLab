@@ -125,7 +125,7 @@ export function createFestivalDemo() {
     serviceTimeSeconds: 30,
     servers: 1,
     inventory: null,
-    queueLimit: null,
+    queueLimit: 8,
   }));
   return layout;
 }
@@ -140,7 +140,7 @@ export const festivalDemoSettings: SimulationSettings = {
     maximumVisitsPerDestination: 2,
     deterministicExitProbabilityAfterStop: 0,
     minimumRemainingTimeSeconds: 0,
-    queueToleranceMultiplier: 5,
+    queueToleranceMultiplier: 1,
     dwellDurationSeconds: {
       stage: { minimum: 90, maximum: 180 },
       seating: { minimum: 90, maximum: 180 },
