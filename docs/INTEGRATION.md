@@ -112,3 +112,27 @@ Tests must reconcile aggregates with the event ledger.
 - CP5: run the exact demo script against a Vercel preview.
 
 If a contract must change after CP1, open a small contract PR first, update fixtures/tests, get both humans to review, merge, then rebase dependent branches.
+
+## UI-04 and queue-retention integration checkpoint (merged 2026-11-14)
+
+Main `785ed94` includes PR #10/#11. See UI-04-CONSOLIDATED-HANDOFF.md for the
+full current boundary, scope extension and evidence.
+
+- Long/full queue departures reselect within normal bounds. Frames may carry
+  queueFrustration; vendor frames may carry queueFull. UI must not reconstruct
+  these states by guessing from events or browser time.
+- missed_sale events value modeled opportunities at average vendor price;
+  analytics supplies vendorMetrics.missedSales count/value. They are attempts,
+  not unique guests or actual lost festival revenue. Stockout-only departure
+  and ordinary exits are not assigned invented purchase amounts.
+- Analytics reduces ordered events into recorded-moment vendor business values
+  (cumulativeRevenue, cumulativeMissedSales, cumulativeMissedSaleValue). Playback
+  reads these directly, resets on restart/rerun, and filters future ledger
+  entries from display. Missing legacy values are Unavailable, not final totals.
+- A future UI-03 dashboard reads final result metrics, independently of scrubbing.
+  Do not reuse playback-time values as final-run summary metrics.
+- ANA-03 destination arrays remain unimplemented/empty. INT-01 must reject or
+  visibly warn on incompatible model semantics as well as mismatched inputs;
+  schemaVersion 1 alone cannot equate older timeout-exits runs with current runs.
+- Fresh performance and remaining manual QA are pending, not proven by merge
+  presence or historical test counts. Continue via UI-04-QA/PERF-01 in TASKS.

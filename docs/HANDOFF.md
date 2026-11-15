@@ -1,28 +1,31 @@
 # Current implementation and expanded P0 handoff
 
-The implemented SIM-03 boundary and the concrete remaining UI-04 work are
-documented in [SIM-03 to UI-04 integration handoff](./SIM-03-UI-04-HANDOFF.md).
+## Current checkpoint — 2026-11-14
 
-## Current checkpoint
+Start with [UI-04 consolidated handoff](./UI-04-CONSOLIDATED-HANDOFF.md) and
+[the updated task plan](./TASKS.md). Fetched main `785ed94` includes UI-04/demo
+PR #10 and queue-retention PR #11, in addition to merged SIM-03 (#8/#9), CON-02
+and the earlier simulation/vendor-analytics/playback slice.
 
-- UI-01, SIM-01, and SIM-02 provide the editor, deterministic profiles and
-  movement, vendor queues/service/purchases, inventory, events, and frames.
-- UI-02 exists separately and still needs normal review/integration into
-  `main`.
-- ANA-01 is implemented locally on `codex/ana-01-event-metrics` at commit
-  `783fd45`; it has not been pushed or merged. It remains intentionally limited
-  to canonical vendor metrics and totals from the SIM-02 event ledger.
-- CON-02 now defines the additive schema-v1 behavior/destination contract,
-  resolved defaults, individual attendee parameters, generic visit/exit events,
-  destination result shapes, and reviewed multi-destination fixtures. SIM-03,
-  ANA-03, and the advanced UI controls remain separate implementation tasks.
+The app supports behavior editing, canonical amenities, deterministic bounded
+price/budget-sensitive visits and timed playback. The user-requested extension
+retains queue leavers for another eligible choice, marks frustration/full queues,
+records modeled missed-sale attempts and paces business figures with playback.
+That extension crossed original UI-04 ownership into shared contracts,
+simulation and analytics; TASKS tracks it as merged EXT-01, not future work.
 
-The present SIM-02 engine still sends an attendee to one available vendor
-whenever a vendor exists. It now snapshots resolved behavior settings and
-complete deterministic profiles, but does not yet use them to produce price
-elasticity, bounded multi-stop choice, stage-first behavior, amenities, or
-roaming. The multi-destination result fixture demonstrates the approved ledger;
-it is not a claim that SIM-03 is already implemented.
+Latest implementation evidence: verify passed 182 tests, lint, types and build.
+Complete manual accessibility/lifecycle checks and fresh 300-guest FPS/runtime/
+payload measurement remain outstanding. ANA-03 destination summaries, UI-03 full
+results dashboard, INT-01 comparisons, ANA-02 recommendations and REL-01 remain
+next steps. The demo's stall table does not complete those tasks.
+
+PR merge presence is verified; both-developer approvals are not independently
+verified from empty review-list results. Follow normal joint review for new
+shared-contract changes; do not infer a retrospective gate from absent records.
+
+The sections below preserve the original expanded-P0 plan. Current source,
+TASKS and consolidated handoff supersede outdated implementation-status claims.
 
 ## Approved expanded P0 shape
 
